@@ -1,8 +1,8 @@
 [project]
-name = "open-webui"
-description = "Open WebUI"
+name = "nst-ai"
+description = "NST-Ai - AI Study Buddy"
 authors = [
-    { name = "Timothy Jaeryang Baek", email = "tim@openwebui.com" }
+    { name = "Vivek W (AryanVBW)", email = "vivek.aryanvbw@gmail.com" }
 ]
 license = { file = "LICENSE" }
 dependencies = [
@@ -153,7 +153,7 @@ classifiers = [
 ]
 
 [project.scripts]
-open-webui = "open_webui:app"
+nst-ai = "open_webui:app"
 
 [build-system]
 requires = ["hatchling"]

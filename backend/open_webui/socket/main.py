@@ -92,17 +92,17 @@ if WEBSOCKET_MANAGER == "redis":
         WEBSOCKET_SENTINEL_HOSTS, WEBSOCKET_SENTINEL_PORT
     )
     SESSION_POOL = RedisDict(
-        "open-webui:session_pool",
+        "NST-Ai:session_pool",
         redis_url=WEBSOCKET_REDIS_URL,
         redis_sentinels=redis_sentinels,
     )
     USER_POOL = RedisDict(
-        "open-webui:user_pool",
+        "NST-Ai:user_pool",
         redis_url=WEBSOCKET_REDIS_URL,
         redis_sentinels=redis_sentinels,
     )
     USAGE_POOL = RedisDict(
-        "open-webui:usage_pool",
+        "NST-Ai:usage_pool",
         redis_url=WEBSOCKET_REDIS_URL,
         redis_sentinels=redis_sentinels,
     )
@@ -126,7 +126,7 @@ else:
 
 YDOC_MANAGER = YdocManager(
     redis=REDIS,
-    redis_key_prefix="open-webui:ydoc:documents",
+    redis_key_prefix="NST-Ai:ydoc:documents",
 )
 
 

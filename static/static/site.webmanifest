@@ -1,6 +1,6 @@
 {
-  "name": "Open WebUI",
-  "short_name": "WebUI",
+  "name": "NST-Ai",
+  "short_name": "NST-Ai",
   "icons": [
     {
       "src": "/static/web-app-manifest-192x192.png",

@@ -2,9 +2,9 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   labels:
-    app: open-webui
-  name: open-webui-pvc
-  namespace: open-webui
+    app: NST-Ai
+  name: NST-Ai-pvc
+  namespace: NST-Ai
 spec:
   accessModes: ["ReadWriteOnce"]
   resources:

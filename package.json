@@ -1,7 +1,9 @@
 {
-	"name": "open-webui",
+	"name": "nst-ai",
 	"version": "0.6.18",
 	"private": true,
+	"author": "Vivek W (AryanVBW) <vivek.aryanvbw@gmail.com>",
+	"description": "NST-Ai - AI Study Buddy (Based on Open-WebUI by Timothy Jaeryang Baek)",
 	"scripts": {
 		"dev": "npm run pyodide:fetch && vite dev --host",
 		"dev:5050": "npm run pyodide:fetch && vite dev --port 5050",

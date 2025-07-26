@@ -498,7 +498,7 @@ print(
 
 v{VERSION} - building the best AI user interface.
 {f"Commit: {WEBUI_BUILD_HASH}" if WEBUI_BUILD_HASH != "dev-build" else ""}
-https://github.com/open-webui/open-webui
+https://github.com/AryanVBW/NST-Ai
 """
 )
 
@@ -566,7 +566,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Open WebUI",
+    title="NST-Ai",
     docs_url="/docs" if ENV == "dev" else None,
     openapi_url="/openapi.json" if ENV == "dev" else None,
     redoc_url=None,
@@ -1695,7 +1695,7 @@ async def get_app_latest_release_version(user=Depends(get_verified_user)):
         timeout = aiohttp.ClientTimeout(total=1)
         async with aiohttp.ClientSession(timeout=timeout, trust_env=True) as session:
             async with session.get(
-                "https://api.github.com/repos/open-webui/open-webui/releases/latest",
+                "https://api.github.com/repos/NST-Ai/NST-Ai/releases/latest",
                 ssl=AIOHTTP_CLIENT_SESSION_SSL,
             ) as response:
                 response.raise_for_status()
@@ -1716,7 +1716,7 @@ async def get_app_changelog():
 @app.get("/api/usage")
 async def get_current_usage(user=Depends(get_verified_user)):
     """
-    Get current usage statistics for Open WebUI.
+    Get current usage statistics for NST-Ai.
     This is an experimental endpoint and subject to change.
     """
     try:
@@ -1765,7 +1765,7 @@ async def get_manifest_json():
         return {
             "name": app.state.WEBUI_NAME,
             "short_name": app.state.WEBUI_NAME,
-            "description": "Open WebUI is an open, extensible, user-friendly interface for AI that adapts to your workflow.",
+            "description": "NST-Ai is an open, extensible, user-friendly interface for AI that adapts to your workflow.",
             "start_url": "/",
             "display": "standalone",
             "background_color": "#343541",
