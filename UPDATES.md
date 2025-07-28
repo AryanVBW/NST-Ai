@@ -1,5 +1,18 @@
 # NST-Ai Updates Log
 
+## Version Update to v0.1.2 - January 27, 2025
+
+### Version Change
+- **Project Version**: Updated from v0.6.18 to v0.1.2 to reflect this as the first official version of NST-Ai
+- **File Modified**: `package.json` - Changed version field from "0.6.18" to "0.1.2"
+- **Rationale**: This represents the first version of NST-Ai as a distinct project, moving away from the inherited version numbering
+
+### Technical Details
+- **Frontend Version**: Now displays v0.1.2 in all UI components
+- **Backend Version**: Automatically synced via pyproject.toml dynamic versioning from package.json
+- **Impact**: Version is displayed in About sections, update checks, and application headers
+- **Status**: ✅ Version successfully updated across the entire application
+
 ## Backend Import Error Fix - January 27, 2025
 
 ### Issue Resolved
@@ -119,15 +132,46 @@
 - Frontend is running on http://localhost:5173
 
 ### Current Status
-- ✅ Backend server: Running on port 8080
-- ✅ Frontend server: Running on port 5173
+- ✅ Backend server: Running on http://localhost:8080
+- ✅ Frontend server: Running on http://localhost:5173
 - ✅ Both services are accessible and functional
+- ✅ All dependencies successfully installed and resolved
 
 ### Technical Notes
 - Project requires Python 3.11-3.12 (currently using Python 3.13.5 with uv)
 - Project requires Node.js 20.16.0+ or 22.3.0+ (upgraded to v20.19.4)
 - Used `uv` package manager for Python dependencies
 - Used `--legacy-peer-deps` for npm installation due to TipTap version conflicts
+- Fixed authlib dependency issue by using uv sync from project root
+- Pyodide packages successfully downloaded and cached for browser Python runtime
+
+## Development Session - January 26, 2025 (Latest)
+
+### Backend Startup
+- **Issue Resolved**: Fixed missing authlib module error by using `uv sync` from project root
+- **Dependencies**: Successfully installed all Python dependencies using uv package manager
+- **Server Status**: Backend running successfully on http://localhost:8080 with reload enabled
+- **Command Used**: `uv run python -m uvicorn nst_ai.main:app --host 0.0.0.0 --port 8080 --reload`
+
+### Frontend Startup
+- **Pyodide Setup**: Successfully downloaded and cached all required Python packages for browser runtime
+- **Packages Cached**: micropip, packaging, requests, beautifulsoup4, numpy, pandas, matplotlib, scikit-learn, scipy, regex, sympy, tiktoken, seaborn, pytz, black, openai
+- **Vite Server**: Started successfully on http://localhost:5173 with network access
+- **Command Used**: `npm run dev`
+- **Performance**: Ready in 1190ms after dependency optimization
+
+### Error Resolution
+- **Backend Error**: ModuleNotFoundError for 'authlib' - resolved by running uv sync from project root
+- **Package Installation**: Avoided pip installation issues by using uv package manager
+- **Dependencies**: All 323 packages resolved and installed successfully
+
+### Current Status
+- ✅ Backend server: Running on http://localhost:8080 (Process ID available)
+- ✅ Frontend server: Running on http://localhost:5173 with network access
+- ✅ Both services fully operational and accessible
+- ✅ All Python and Node.js dependencies resolved
+- ✅ Pyodide runtime ready for browser-based Python execution
+- ✅ Development environment fully configured and functional
 
 ## Rebranding from NST-Ai to NST-Ai
 

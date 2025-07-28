@@ -1,6 +1,6 @@
 {
 	"name": "nst-ai",
-	"version": "0.6.18",
+	"version": "0.1.2",
 	"private": true,
 	"author": "Vivek W (AryanVBW) <vivek.aryanvbw@gmail.com>",
 	"description": "NST-Ai - AI Study Buddy (Based on Open-WebUI by Timothy Jaeryang Baek)",
