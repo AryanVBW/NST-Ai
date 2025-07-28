@@ -971,7 +971,7 @@
 	"NST-Ai can use tools provided by any OpenAPI server.": "",
 	"NST-Ai uses faster-whisper internally.": "NST-Ai folosește faster-whisper intern.",
 	"NST-Ai uses SpeechT5 and CMU Arctic speaker embeddings.": "",
-	"NST-Ai version (v{{OPEN_WEBUI_VERSION}}) is lower than required version (v{{REQUIRED_VERSION}})": "Versiunea NST-Ai (v{{OPEN_WEBUI_VERSION}}) este mai mică decât versiunea necesară (v{{REQUIRED_VERSION}})",
+	"NST-Ai version (v{{nst_ai_VERSION}}) is lower than required version (v{{REQUIRED_VERSION}})": "Versiunea NST-Ai (v{{nst_ai_VERSION}}) este mai mică decât versiunea necesară (v{{REQUIRED_VERSION}})",
 	"OpenAI": "OpenAI",
 	"OpenAI API": "API OpenAI",
 	"OpenAI API Config": "Configurația API OpenAI",

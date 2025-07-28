@@ -38,81 +38,225 @@
 	};
 
 	const setSessionUser = async (sessionUser) => {
-		if (sessionUser) {
-			console.log(sessionUser);
-			toast.success($i18n.t(`You're now logged in.`));
-			if (sessionUser.token) {
-				localStorage.token = sessionUser.token;
+		try {
+			if (!sessionUser) {
+				console.warn('No session user provided');
+				return;
 			}
-			$socket.emit('user-join', { auth: { token: sessionUser.token } });
+			
+			console.log('Setting session user:', sessionUser);
+			toast.success($i18n.t(`You're now logged in.`));
+			
+			if (sessionUser.token) {
+				try {
+					localStorage.token = sessionUser.token;
+				} catch (storageError) {
+					console.error('Error saving token to localStorage:', storageError);
+					toast.warning($i18n.t('Session may not persist across browser restarts'));
+				}
+			} else {
+				console.warn('No token provided in session user');
+			}
+			
+			try {
+				if ($socket && sessionUser.token) {
+					$socket.emit('user-join', { auth: { token: sessionUser.token } });
+				}
+			} catch (socketError) {
+				console.error('Error emitting user-join event:', socketError);
+				// Continue without socket - not critical for login
+			}
+			
 			await user.set(sessionUser);
-			await config.set(await getBackendConfig());
+			
+			try {
+				await config.set(await getBackendConfig());
+			} catch (configError) {
+				console.error('Error refreshing config after login:', configError);
+				// Continue with existing config
+			}
 
+			const redirectPath = querystringValue('redirect') || '/';
+			goto(redirectPath);
+		} catch (error) {
+			console.error('Error setting session user:', error);
+			toast.error($i18n.t('Login successful but session setup failed: {{error}}', { error: error.message }));
+			// Still try to redirect even if some setup failed
 			const redirectPath = querystringValue('redirect') || '/';
 			goto(redirectPath);
 		}
 	};
 
 	const signInHandler = async () => {
-		const sessionUser = await userSignIn(email, password).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
-
-		await setSessionUser(sessionUser);
+		try {
+			if (!email || !password) {
+				toast.error($i18n.t('Please enter both email and password'));
+				return;
+			}
+			
+			if (!email.includes('@')) {
+				toast.error($i18n.t('Please enter a valid email address'));
+				return;
+			}
+			
+			const sessionUser = await userSignIn(email, password);
+			await setSessionUser(sessionUser);
+		} catch (error) {
+			console.error('Sign in error:', error);
+			if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+				toast.error($i18n.t('Invalid email or password'));
+			} else if (error.message.includes('429')) {
+				toast.error($i18n.t('Too many login attempts. Please try again later.'));
+			} else if (error.message.includes('network') || error.message.includes('fetch')) {
+				toast.error($i18n.t('Network error. Please check your connection.'));
+			} else {
+				toast.error($i18n.t('Sign in failed: {{error}}', { error: error.message }));
+			}
+		}
 	};
 
 	const signUpHandler = async () => {
-		const sessionUser = await userSignUp(name, email, password, generateInitialsImage(name)).catch(
-			(error) => {
-				toast.error(`${error}`);
-				return null;
+		try {
+			if (!name || !email || !password) {
+				toast.error($i18n.t('Please fill in all required fields'));
+				return;
 			}
-		);
-
-		await setSessionUser(sessionUser);
+			
+			if (name.trim().length < 2) {
+				toast.error($i18n.t('Name must be at least 2 characters long'));
+				return;
+			}
+			
+			if (!email.includes('@')) {
+				toast.error($i18n.t('Please enter a valid email address'));
+				return;
+			}
+			
+			if (password.length < 8) {
+				toast.error($i18n.t('Password must be at least 8 characters long'));
+				return;
+			}
+			
+			let profileImage;
+			try {
+				profileImage = generateInitialsImage(name);
+			} catch (imageError) {
+				console.error('Error generating profile image:', imageError);
+				profileImage = null; // Continue without profile image
+			}
+			
+			const sessionUser = await userSignUp(name.trim(), email.toLowerCase(), password, profileImage);
+			await setSessionUser(sessionUser);
+		} catch (error) {
+			console.error('Sign up error:', error);
+			if (error.message.includes('409') || error.message.includes('already exists')) {
+				toast.error($i18n.t('An account with this email already exists'));
+			} else if (error.message.includes('400') || error.message.includes('validation')) {
+				toast.error($i18n.t('Invalid input. Please check your information.'));
+			} else if (error.message.includes('network') || error.message.includes('fetch')) {
+				toast.error($i18n.t('Network error. Please check your connection.'));
+			} else {
+				toast.error($i18n.t('Sign up failed: {{error}}', { error: error.message }));
+			}
+		}
 	};
 
 	const ldapSignInHandler = async () => {
-		const sessionUser = await ldapUserSignIn(ldapUsername, password).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
-		await setSessionUser(sessionUser);
+		try {
+			if (!ldapUsername || !password) {
+				toast.error($i18n.t('Please enter both username and password'));
+				return;
+			}
+			
+			if (ldapUsername.trim().length < 2) {
+				toast.error($i18n.t('Username must be at least 2 characters long'));
+				return;
+			}
+			
+			const sessionUser = await ldapUserSignIn(ldapUsername.trim(), password);
+			await setSessionUser(sessionUser);
+		} catch (error) {
+			console.error('LDAP sign in error:', error);
+			if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+				toast.error($i18n.t('Invalid username or password'));
+			} else if (error.message.includes('503') || error.message.includes('LDAP server')) {
+				toast.error($i18n.t('LDAP server is unavailable. Please try again later.'));
+			} else if (error.message.includes('network') || error.message.includes('fetch')) {
+				toast.error($i18n.t('Network error. Please check your connection.'));
+			} else {
+				toast.error($i18n.t('LDAP authentication failed: {{error}}', { error: error.message }));
+			}
+		}
 	};
 
 	const submitHandler = async () => {
-		if (mode === 'ldap') {
-			await ldapSignInHandler();
-		} else if (mode === 'signin') {
-			await signInHandler();
-		} else {
-			await signUpHandler();
+		try {
+			if (mode === 'ldap') {
+				await ldapSignInHandler();
+			} else if (mode === 'signin') {
+				await signInHandler();
+			} else {
+				await signUpHandler();
+			}
+		} catch (error) {
+			console.error('Submit handler error:', error);
+			toast.error($i18n.t('Authentication failed: {{error}}', { error: error.message }));
 		}
 	};
 
 	const checkOauthCallback = async () => {
-		if (!$page.url.hash) {
-			return;
+		try {
+			if (!$page.url.hash) {
+				return;
+			}
+			
+			const hash = $page.url.hash.substring(1);
+			if (!hash) {
+				return;
+			}
+			
+			const params = new URLSearchParams(hash);
+			const token = params.get('token');
+			const error = params.get('error');
+			const errorDescription = params.get('error_description');
+			
+			if (error) {
+				console.error('OAuth error:', error, errorDescription);
+				toast.error($i18n.t('OAuth authentication failed: {{error}}', { 
+					error: errorDescription || error 
+				}));
+				return;
+			}
+			
+			if (!token) {
+				console.warn('No token found in OAuth callback');
+				return;
+			}
+			
+			if (token.length < 10) {
+				console.error('Invalid token format in OAuth callback');
+				toast.error($i18n.t('Invalid authentication token received'));
+				return;
+			}
+			
+			const sessionUser = await getSessionUser(token);
+			if (!sessionUser) {
+				toast.error($i18n.t('Failed to validate OAuth session'));
+				return;
+			}
+			
+			try {
+				localStorage.token = token;
+			} catch (storageError) {
+				console.error('Error saving OAuth token:', storageError);
+				toast.warning($i18n.t('Session may not persist across browser restarts'));
+			}
+			
+			await setSessionUser(sessionUser);
+		} catch (error) {
+			console.error('OAuth callback error:', error);
+			toast.error($i18n.t('OAuth authentication failed: {{error}}', { error: error.message }));
 		}
-		const hash = $page.url.hash.substring(1);
-		if (!hash) {
-			return;
-		}
-		const params = new URLSearchParams(hash);
-		const token = params.get('token');
-		if (!token) {
-			return;
-		}
-		const sessionUser = await getSessionUser(token).catch((error) => {
-			toast.error(`${error}`);
-			return null;
-		});
-		if (!sessionUser) {
-			return;
-		}
-		localStorage.token = token;
-		await setSessionUser(sessionUser);
 	};
 
 	let onboarding = false;
@@ -141,19 +285,38 @@
 	}
 
 	onMount(async () => {
-		if ($user !== undefined) {
-			const redirectPath = querystringValue('redirect') || '/';
-			goto(redirectPath);
-		}
-		await checkOauthCallback();
+		try {
+			if ($user !== undefined) {
+				const redirectPath = querystringValue('redirect') || '/';
+				goto(redirectPath);
+				return;
+			}
+			
+			await checkOauthCallback();
 
-		loaded = true;
-		setLogoImage();
+			loaded = true;
+			
+			try {
+				setLogoImage();
+			} catch (logoError) {
+				console.error('Error setting logo image:', logoError);
+				// Continue without logo - not critical
+			}
 
-		if (($config?.features.auth_trusted_header ?? false) || $config?.features.auth === false) {
-			await signInHandler();
-		} else {
-			onboarding = $config?.onboarding ?? false;
+			if (($config?.features.auth_trusted_header ?? false) || $config?.features.auth === false) {
+				try {
+					await signInHandler();
+				} catch (autoSignInError) {
+					console.error('Auto sign-in failed:', autoSignInError);
+					toast.error($i18n.t('Automatic authentication failed. Please sign in manually.'));
+				}
+			} else {
+				onboarding = $config?.onboarding ?? false;
+			}
+		} catch (error) {
+			console.error('Error during auth page initialization:', error);
+			toast.error($i18n.t('Failed to initialize authentication: {{error}}', { error: error.message }));
+			loaded = true; // Still show the page even if initialization failed
 		}
 	});
 </script>

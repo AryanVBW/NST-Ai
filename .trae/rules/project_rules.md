@@ -1,0 +1,1 @@
+After making any changes to the codebase, documentation, logos, or any other component, ensure that every modification—such as code edits, file renames, or design updates—is recorded in the UPDATES.md file for proper tracking and version history.

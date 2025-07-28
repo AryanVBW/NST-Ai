@@ -971,7 +971,7 @@
 	"NST-Ai can use tools provided by any OpenAPI server.": "",
 	"NST-Ai uses faster-whisper internally.": "NST-Ai interne používa faster-whisper.",
 	"NST-Ai uses SpeechT5 and CMU Arctic speaker embeddings.": "",
-	"NST-Ai version (v{{OPEN_WEBUI_VERSION}}) is lower than required version (v{{REQUIRED_VERSION}})": "Verzia NST-Ai (v{{OPEN_WEBUI_VERSION}}) je nižšia ako požadovaná verzia (v{{REQUIRED_VERSION}})",
+	"NST-Ai version (v{{nst_ai_VERSION}}) is lower than required version (v{{REQUIRED_VERSION}})": "Verzia NST-Ai (v{{nst_ai_VERSION}}) je nižšia ako požadovaná verzia (v{{REQUIRED_VERSION}})",
 	"OpenAI": "OpenAI je výskumná organizácia zameraná na umelú inteligenciu, ktorá je známa vývojom pokročilých jazykových modelov, ako je napríklad GPT. Tieto modely sa využívajú v rôznych aplikáciách, vrátane konverzačných agentov a jazykových nástrojov.",
 	"OpenAI API": "OpenAI API je rozhranie aplikačného programovania, ktoré umožňuje vývojárom integrovať pokročilé jazykové modely do svojich aplikácií.",
 	"OpenAI API Config": "Konfigurácia API OpenAI",

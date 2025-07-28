@@ -153,7 +153,7 @@ classifiers = [
 ]
 
 [project.scripts]
-nst-ai = "open_webui:app"
+nst-ai = "nst_ai:app"
 
 [build-system]
 requires = ["hatchling"]
@@ -185,7 +185,7 @@ exclude = [
     "webui.db",
     "chroma.sqlite3",
 ]
-force-include = { "CHANGELOG.md" = "open_webui/CHANGELOG.md", build = "open_webui/frontend" }
+force-include = { "CHANGELOG.md" = "nst_ai/CHANGELOG.md", build = "nst_ai/frontend" }
 
 [tool.codespell]
 # Ref: https://github.com/codespell-project/codespell#using-a-config-file

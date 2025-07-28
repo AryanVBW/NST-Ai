@@ -67,46 +67,85 @@
 	const BREAKPOINT = 768;
 
 	const setupSocket = async (enableWebsocket) => {
-		const _socket = io(`${WEBUI_BASE_URL}` || undefined, {
-			reconnection: true,
-			reconnectionDelay: 1000,
-			reconnectionDelayMax: 5000,
-			randomizationFactor: 0.5,
-			path: '/ws/socket.io',
-			transports: enableWebsocket ? ['websocket'] : ['polling', 'websocket'],
-			auth: { token: localStorage.token }
-		});
-
-		await socket.set(_socket);
-
-		_socket.on('connect_error', (err) => {
-			console.log('connect_error', err);
-		});
-
-		_socket.on('connect', () => {
-			console.log('connected', _socket.id);
-			if (localStorage.getItem('token')) {
-				// Emit user-join event with auth token
-				_socket.emit('user-join', { auth: { token: localStorage.token } });
-			} else {
-				console.warn('No token found in localStorage, user-join event not emitted');
+		try {
+			if (!WEBUI_BASE_URL) {
+				throw new Error('WEBUI_BASE_URL is not defined');
 			}
-		});
+			
+			const _socket = io(`${WEBUI_BASE_URL}` || undefined, {
+				reconnection: true,
+				reconnectionDelay: 1000,
+				reconnectionDelayMax: 5000,
+				randomizationFactor: 0.5,
+				path: '/ws/socket.io',
+				transports: enableWebsocket ? ['websocket'] : ['polling', 'websocket'],
+				auth: { token: localStorage.token || null },
+				timeout: 10000
+			});
 
-		_socket.on('reconnect_attempt', (attempt) => {
-			console.log('reconnect_attempt', attempt);
-		});
+			await socket.set(_socket);
 
-		_socket.on('reconnect_failed', () => {
-			console.log('reconnect_failed');
-		});
+			_socket.on('connect_error', (err) => {
+				console.error('Socket connection error:', err);
+				if (err.message.includes('timeout')) {
+					toast.error($i18n.t('Connection timeout. Please check your network.'));
+				} else if (err.message.includes('unauthorized')) {
+					toast.error($i18n.t('Authentication failed. Please sign in again.'));
+					localStorage.removeItem('token');
+					goto('/auth');
+				} else {
+					toast.error($i18n.t('Failed to connect to server: {{error}}', { error: err.message }));
+				}
+			});
 
-		_socket.on('disconnect', (reason, details) => {
-			console.log(`Socket ${_socket.id} disconnected due to ${reason}`);
-			if (details) {
-				console.log('Additional details:', details);
-			}
-		});
+			_socket.on('connect', () => {
+				console.log('Socket connected:', _socket.id);
+				if (localStorage.getItem('token')) {
+					try {
+						// Emit user-join event with auth token
+						_socket.emit('user-join', { auth: { token: localStorage.token } });
+					} catch (emitError) {
+						console.error('Error emitting user-join event:', emitError);
+					}
+				} else {
+					console.warn('No token found in localStorage, user-join event not emitted');
+				}
+			});
+
+			_socket.on('reconnect_attempt', (attempt) => {
+				console.log('Socket reconnection attempt:', attempt);
+				if (attempt > 3) {
+					toast.warning($i18n.t('Connection unstable. Attempting to reconnect...'));
+				}
+			});
+
+			_socket.on('reconnect_failed', () => {
+				console.error('Socket reconnection failed');
+				toast.error($i18n.t('Failed to reconnect to server. Please refresh the page.'));
+			});
+
+			_socket.on('disconnect', (reason, details) => {
+				console.log(`Socket ${_socket.id} disconnected due to ${reason}`);
+				if (details) {
+					console.log('Disconnect details:', details);
+				}
+				
+				if (reason === 'io server disconnect') {
+					toast.warning($i18n.t('Server disconnected. Attempting to reconnect...'));
+				} else if (reason === 'transport error') {
+					toast.error($i18n.t('Network error. Please check your connection.'));
+				}
+			});
+			
+			_socket.on('reconnect', (attempt) => {
+				console.log('Socket reconnected after', attempt, 'attempts');
+				toast.success($i18n.t('Reconnected to server'));
+			});
+			
+		} catch (error) {
+			console.error('Error setting up socket:', error);
+			toast.error($i18n.t('Failed to initialize connection: {{error}}', { error: error.message }));
+		}
 	};
 
 	const executePythonAsWorker = async (id, code, cb) => {
@@ -450,20 +489,42 @@
 
 	const TOKEN_EXPIRY_BUFFER = 60; // seconds
 	const checkTokenExpiry = async () => {
-		const exp = $user?.expires_at; // token expiry time in unix timestamp
-		const now = Math.floor(Date.now() / 1000); // current time in unix timestamp
+		try {
+			const exp = $user?.expires_at; // token expiry time in unix timestamp
+			const now = Math.floor(Date.now() / 1000); // current time in unix timestamp
 
-		if (!exp) {
-			// If no expiry time is set, do nothing
-			return;
-		}
+			if (!exp) {
+				// If no expiry time is set, do nothing
+				return;
+			}
 
-		if (now >= exp - TOKEN_EXPIRY_BUFFER) {
-			const res = await userSignOut();
-			user.set(null);
-			localStorage.removeItem('token');
+			if (now >= exp - TOKEN_EXPIRY_BUFFER) {
+				console.log('Token expired, signing out user');
+				toast.warning($i18n.t('Session expired. Please sign in again.'));
+				
+				try {
+					const res = await userSignOut();
+					user.set(null);
+					localStorage.removeItem('token');
+					
+					// Clear token timer
+					if (tokenTimer) {
+						clearInterval(tokenTimer);
+						tokenTimer = null;
+					}
 
-			location.href = res?.redirect_url ?? '/auth';
+					location.href = res?.redirect_url ?? '/auth';
+				} catch (signOutError) {
+					console.error('Error during sign out:', signOutError);
+					// Force logout even if sign out fails
+					user.set(null);
+					localStorage.removeItem('token');
+					location.href = '/auth';
+				}
+			}
+		} catch (error) {
+			console.error('Error checking token expiry:', error);
+			// Don't show user-facing error for token check failures
 		}
 	};
 
@@ -548,63 +609,112 @@
 		});
 
 		let backendConfig = null;
-		try {
-			backendConfig = await getBackendConfig();
-			console.log('Backend config:', backendConfig);
-		} catch (error) {
-			console.error('Error loading backend config:', error);
+		let configRetries = 0;
+		const maxConfigRetries = 3;
+		
+		while (configRetries < maxConfigRetries && !backendConfig) {
+			try {
+				backendConfig = await getBackendConfig();
+				console.log('Backend config loaded:', backendConfig);
+				break;
+			} catch (error) {
+				configRetries++;
+				console.error(`Error loading backend config (attempt ${configRetries}/${maxConfigRetries}):`, error);
+				
+				if (configRetries < maxConfigRetries) {
+					console.log(`Retrying backend config in ${configRetries * 1000}ms...`);
+					await new Promise(resolve => setTimeout(resolve, configRetries * 1000));
+				} else {
+					toast.error($i18n.t('Failed to connect to backend after {{retries}} attempts', { retries: maxConfigRetries }));
+				}
+			}
 		}
+		
 		// Initialize i18n even if we didn't get a backend config,
 		// so `/error` can show something that's not `undefined`.
-
-		initI18n(localStorage?.locale);
-		if (!localStorage.locale) {
-			const languages = await getLanguages();
-			const browserLanguages = navigator.languages
-				? navigator.languages
-				: [navigator.language || navigator.userLanguage];
-			const lang = backendConfig.default_locale
-				? backendConfig.default_locale
-				: bestMatchingLanguage(languages, browserLanguages, 'en-US');
-			changeLanguage(lang);
+		try {
+			initI18n(localStorage?.locale);
+			if (!localStorage.locale) {
+				try {
+					const languages = await getLanguages();
+					const browserLanguages = navigator.languages
+						? navigator.languages
+						: [navigator.language || navigator.userLanguage];
+					const lang = backendConfig?.default_locale
+						? backendConfig.default_locale
+						: bestMatchingLanguage(languages, browserLanguages, 'en-US');
+					changeLanguage(lang);
+				} catch (langError) {
+					console.error('Error setting up language:', langError);
+					// Fall back to English if language setup fails
+					changeLanguage('en-US');
+				}
+			}
+		} catch (i18nError) {
+			console.error('Error initializing i18n:', i18nError);
 		}
 
 		if (backendConfig) {
-			// Save Backend Status to Store
-			await config.set(backendConfig);
-			await WEBUI_NAME.set(backendConfig.name);
+			try {
+				// Save Backend Status to Store
+				await config.set(backendConfig);
+				await WEBUI_NAME.set(backendConfig.name || 'NST-Ai');
 
-			if ($config) {
-				await setupSocket($config.features?.enable_websocket ?? true);
-
-				const currentUrl = `${window.location.pathname}${window.location.search}`;
-				const encodedUrl = encodeURIComponent(currentUrl);
-
-				if (localStorage.token) {
-					// Get Session User Info
-					const sessionUser = await getSessionUser(localStorage.token).catch((error) => {
-						toast.error(`${error}`);
-						return null;
-					});
-
-					if (sessionUser) {
-						await user.set(sessionUser);
-						await config.set(await getBackendConfig());
-					} else {
-						// Redirect Invalid Session User to /auth Page
-						localStorage.removeItem('token');
-						await goto(`/auth?redirect=${encodedUrl}`);
+				if ($config) {
+					try {
+						await setupSocket($config.features?.enable_websocket ?? true);
+					} catch (socketError) {
+						console.error('Socket setup failed:', socketError);
+						// Continue without socket - some features may not work
+						toast.warning($i18n.t('Real-time features may not work properly'));
 					}
-				} else {
-					// Don't redirect if we're already on the auth page
-					// Needed because we pass in tokens from OAuth logins via URL fragments
-					if ($page.url.pathname !== '/auth') {
-						await goto(`/auth?redirect=${encodedUrl}`);
+
+					const currentUrl = `${window.location.pathname}${window.location.search}`;
+					const encodedUrl = encodeURIComponent(currentUrl);
+
+					if (localStorage.token) {
+						try {
+							// Get Session User Info
+							const sessionUser = await getSessionUser(localStorage.token);
+
+							if (sessionUser) {
+								await user.set(sessionUser);
+								try {
+									// Refresh config with user context
+									await config.set(await getBackendConfig());
+								} catch (configRefreshError) {
+									console.error('Error refreshing config:', configRefreshError);
+									// Continue with existing config
+								}
+							} else {
+								// Invalid session
+								console.warn('Invalid session, redirecting to auth');
+								localStorage.removeItem('token');
+								await goto(`/auth?redirect=${encodedUrl}`);
+							}
+						} catch (sessionError) {
+							console.error('Session validation error:', sessionError);
+							toast.error($i18n.t('Session validation failed: {{error}}', { error: sessionError.message }));
+							// Remove invalid token and redirect
+							localStorage.removeItem('token');
+							await goto(`/auth?redirect=${encodedUrl}`);
+						}
+					} else {
+						// Don't redirect if we're already on the auth page
+						// Needed because we pass in tokens from OAuth logins via URL fragments
+						if ($page.url.pathname !== '/auth') {
+							await goto(`/auth?redirect=${encodedUrl}`);
+						}
 					}
 				}
+			} catch (configError) {
+				console.error('Error processing backend config:', configError);
+				toast.error($i18n.t('Failed to initialize application: {{error}}', { error: configError.message }));
+				await goto(`/error`);
 			}
 		} else {
 			// Redirect to /error when Backend Not Detected
+			console.error('Backend not detected after retries');
 			await goto(`/error`);
 		}
 

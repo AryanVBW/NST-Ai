@@ -123,19 +123,9 @@
 			</div>
 		{:else}
 			<div class="flex space-x-1">
-				<a href="https://discord.gg/5rJgQTnV4s" target="_blank">
-					<img
-						alt="Discord"
-						src="https://img.shields.io/badge/Discord-Open_WebUI-blue?logo=discord&logoColor=white"
-					/>
-				</a>
+			
 
-				<a href="https://twitter.com/NST-AI" target="_blank">
-					<img
-						alt="X (formerly Twitter) Follow"
-						src="https://img.shields.io/twitter/follow/NST-AI"
-					/>
-				</a>
+		
 
 				<a href="https://github.com/AryanVBW/NST-Ai" target="_blank">
 					<img
@@ -146,18 +136,14 @@
 			</div>
 		{/if}
 
-		<div class="mt-2 text-xs text-gray-400 dark:text-gray-500">
-			Emoji graphics provided by
-			<a href="https://github.com/jdecked/twemoji" target="_blank">Twemoji</a>, licensed under
-			<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC-BY 4.0</a>.
-		</div>
+	
 
 		<div>
 			<pre
 				class="text-xs text-gray-400 dark:text-gray-500">Copyright (c) {new Date().getFullYear()} <a
 					href="https://NST-AI.com"
 					target="_blank"
-					class="underline">NST-Ai (Timothy Jaeryang Baek)</a
+					class="underline">NST-Ai</a
 				>
 All rights reserved.
 
@@ -198,8 +184,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 			{$i18n.t('Created by')}
 			<a
 				class=" text-gray-500 dark:text-gray-300 font-medium"
-				href="https://github.com/tjbck"
-				target="_blank">Timothy J. Baek</a
+				href="https://github.com/AryanVBW"
+				target="_blank">Vivek W</a
 			>
 		</div>
 	</div>

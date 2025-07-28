@@ -200,10 +200,10 @@
 
 						<div class="mt-1">
 							<div class="flex space-x-1">
-								<a href="https://discord.gg/5rJgQTnV4s" target="_blank">
+								<a href="https://discord.gg/KC5Gfqff" target="_blank">
 									<img
 										alt="Discord"
-										src="https://img.shields.io/badge/Discord-Open_WebUI-blue?logo=discord&logoColor=white"
+										src="https://img.shields.io/badge/Discord-nst_ai-blue?logo=discord&logoColor=white"
 									/>
 								</a>
 

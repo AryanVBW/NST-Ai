@@ -971,7 +971,7 @@
 	"NST-Ai can use tools provided by any OpenAPI server.": "NST-Ai 可使用任何 OpenAPI 服务器提供的工具。",
 	"NST-Ai uses faster-whisper internally.": "NST-Ai 使用内置 faster-whisper",
 	"NST-Ai uses SpeechT5 and CMU Arctic speaker embeddings.": "NST-Ai 使用 SpeechT5 和 CMU Arctic speaker embedding。",
-	"NST-Ai version (v{{OPEN_WEBUI_VERSION}}) is lower than required version (v{{REQUIRED_VERSION}})": "当前 NST-Ai 版本 (v{{OPEN_WEBUI_VERSION}}) 低于所需的版本 (v{{REQUIRED_VERSION}})",
+	"NST-Ai version (v{{nst_ai_VERSION}}) is lower than required version (v{{REQUIRED_VERSION}})": "当前 NST-Ai 版本 (v{{nst_ai_VERSION}}) 低于所需的版本 (v{{REQUIRED_VERSION}})",
 	"OpenAI": "OpenAI",
 	"OpenAI API": "OpenAI API",
 	"OpenAI API Config": "OpenAI API 配置",

@@ -971,7 +971,7 @@
 	"NST-Ai can use tools provided by any OpenAPI server.": "NST-Ai har qanday OpenAPI serveri tomonidan taqdim etilgan vositalardan foydalanishi mumkin.",
 	"NST-Ai uses faster-whisper internally.": "NST-Ai ichki tez shivirlashdan foydalanadi.",
 	"NST-Ai uses SpeechT5 and CMU Arctic speaker embeddings.": "NST-Ai SpeechT5 va CMU Arctic dinamik oʻrnatishlaridan foydalanadi.",
-	"NST-Ai version (v{{OPEN_WEBUI_VERSION}}) is lower than required version (v{{REQUIRED_VERSION}})": "Ochiq WebUI versiyasi (v{{OPEN_WEBUI_VERSION}}) talab qilingan versiyadan (v{{REQUIRED_VERSION}}) pastroq",
+	"NST-Ai version (v{{nst_ai_VERSION}}) is lower than required version (v{{REQUIRED_VERSION}})": "Ochiq WebUI versiyasi (v{{nst_ai_VERSION}}) talab qilingan versiyadan (v{{REQUIRED_VERSION}}) pastroq",
 	"OpenAI": "OpenAI",
 	"OpenAI API": "OpenAI API",
 	"OpenAI API Config": "OpenAI API konfiguratsiyasi",

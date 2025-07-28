@@ -51,16 +51,16 @@ from starlette.responses import Response, StreamingResponse
 from starlette.datastructures import Headers
 
 
-from open_webui.utils import logger
-from open_webui.utils.audit import AuditLevel, AuditLoggingMiddleware
-from open_webui.utils.logger import start_logger
-from open_webui.socket.main import (
+from nst_ai.utils import logger
+from nst_ai.utils.audit import AuditLevel, AuditLoggingMiddleware
+from nst_ai.utils.logger import start_logger
+from nst_ai.socket.main import (
     app as socket_app,
     periodic_usage_pool_cleanup,
     get_models_in_use,
     get_active_user_ids,
 )
-from open_webui.routers import (
+from nst_ai.routers import (
     audio,
     images,
     ollama,
@@ -87,21 +87,21 @@ from open_webui.routers import (
     utils,
 )
 
-from open_webui.routers.retrieval import (
+from nst_ai.routers.retrieval import (
     get_embedding_function,
     get_reranking_function,
     get_ef,
     get_rf,
 )
 
-from open_webui.internal.db import Session, engine
+from nst_ai.internal.db import Session, engine
 
-from open_webui.models.functions import Functions
-from open_webui.models.models import Models
-from open_webui.models.users import UserModel, Users
-from open_webui.models.chats import Chats
+from nst_ai.models.functions import Functions
+from nst_ai.models.models import Models
+from nst_ai.models.users import UserModel, Users
+from nst_ai.models.chats import Chats
 
-from open_webui.config import (
+from nst_ai.config import (
     LICENSE_KEY,
     # Ollama
     ENABLE_OLLAMA_API,
@@ -394,7 +394,7 @@ from open_webui.config import (
     AppConfig,
     reset_config,
 )
-from open_webui.env import (
+from nst_ai.env import (
     AUDIT_EXCLUDED_PATHS,
     AUDIT_LOG_LEVEL,
     CHANGELOG,
@@ -426,40 +426,40 @@ from open_webui.env import (
 )
 
 
-from open_webui.utils.models import (
+from nst_ai.utils.models import (
     get_all_models,
     get_all_base_models,
     check_model_access,
 )
-from open_webui.utils.chat import (
+from nst_ai.utils.chat import (
     generate_chat_completion as chat_completion_handler,
     chat_completed as chat_completed_handler,
     chat_action as chat_action_handler,
 )
-from open_webui.utils.embeddings import generate_embeddings
-from open_webui.utils.middleware import process_chat_payload, process_chat_response
-from open_webui.utils.access_control import has_access
+from nst_ai.utils.embeddings import generate_embeddings
+from nst_ai.utils.middleware import process_chat_payload, process_chat_response
+from nst_ai.utils.access_control import has_access
 
-from open_webui.utils.auth import (
+from nst_ai.utils.auth import (
     get_license_data,
     get_http_authorization_cred,
     decode_token,
     get_admin_user,
     get_verified_user,
 )
-from open_webui.utils.plugin import install_tool_and_function_dependencies
-from open_webui.utils.oauth import OAuthManager
-from open_webui.utils.security_headers import SecurityHeadersMiddleware
-from open_webui.utils.redis import get_redis_connection
+from nst_ai.utils.plugin import install_tool_and_function_dependencies
+from nst_ai.utils.oauth import OAuthManager
+from nst_ai.utils.security_headers import SecurityHeadersMiddleware
+from nst_ai.utils.redis import get_redis_connection
 
-from open_webui.tasks import (
+from nst_ai.tasks import (
     redis_task_command_listener,
     list_task_ids_by_item_id,
     stop_task,
     list_tasks,
 )  # Import from tasks.py
 
-from open_webui.utils.redis import get_sentinels_from_env
+from nst_ai.utils.redis import get_sentinels_from_env
 
 
 if SAFE_MODE:
@@ -594,7 +594,7 @@ app.state.LICENSE_METADATA = None
 ########################################
 
 if ENABLE_OTEL:
-    from open_webui.utils.telemetry.setup import setup as setup_opentelemetry
+    from nst_ai.utils.telemetry.setup import setup as setup_opentelemetry
 
     setup_opentelemetry(app=app, db_engine=engine)
 
@@ -1772,13 +1772,13 @@ async def get_manifest_json():
             "orientation": "any",
             "icons": [
                 {
-                    "src": "/static/logo.png",
+                    "src": "/static/favicon.png",
                     "type": "image/png",
                     "sizes": "500x500",
                     "purpose": "any",
                 },
                 {
-                    "src": "/static/logo.png",
+                    "src": "/static/favicon.png",
                     "type": "image/png",
                     "sizes": "500x500",
                     "purpose": "maskable",

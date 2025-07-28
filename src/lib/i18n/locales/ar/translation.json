@@ -971,7 +971,7 @@
 	"NST-Ai can use tools provided by any OpenAPI server.": "",
 	"NST-Ai uses faster-whisper internally.": "تستخدم واجهة WebUI أداة faster-whisper داخليًا.",
 	"NST-Ai uses SpeechT5 and CMU Arctic speaker embeddings.": "تستخدم WebUI نموذج SpeechT5 وتضمينات صوتية من CMU Arctic.",
-	"NST-Ai version (v{{OPEN_WEBUI_VERSION}}) is lower than required version (v{{REQUIRED_VERSION}})": "إصدار WebUI الحالي (v{{OPEN_WEBUI_VERSION}}) أقل من الإصدار المطلوب (v{{REQUIRED_VERSION}})",
+	"NST-Ai version (v{{nst_ai_VERSION}}) is lower than required version (v{{REQUIRED_VERSION}})": "إصدار WebUI الحالي (v{{nst_ai_VERSION}}) أقل من الإصدار المطلوب (v{{REQUIRED_VERSION}})",
 	"OpenAI": "OpenAI",
 	"OpenAI API": "OpenAI API",
 	"OpenAI API Config": "OpenAI API إعدادات",

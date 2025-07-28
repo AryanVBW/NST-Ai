@@ -1895,50 +1895,135 @@
 	const regenerateResponse = async (message) => {
 		console.log('regenerateResponse');
 
-		if (history.currentId) {
-			let userMessage = history.messages[message.parentId];
-			let userPrompt = userMessage.content;
+		try {
+			if (!history.currentId) {
+				console.error('No current message ID for regeneration');
+				toast.error($i18n.t('No active conversation for regeneration'));
+				return;
+			}
+			
+			if (!message || !message.parentId) {
+				console.error('Invalid message for regeneration:', message);
+				toast.error($i18n.t('Invalid message for regeneration'));
+				return;
+			}
+
+			const userMessage = history.messages[message.parentId];
+			if (!userMessage) {
+				console.error('Parent message not found for regeneration:', message.parentId);
+				toast.error($i18n.t('Original message not found for regeneration'));
+				return;
+			}
+			
+			const userPrompt = userMessage.content;
+			if (!userPrompt || userPrompt.trim() === '') {
+				console.error('Empty prompt for regeneration');
+				toast.error($i18n.t('Cannot regenerate response from empty prompt'));
+				return;
+			}
 
 			if (autoScroll) {
 				scrollToBottom();
 			}
 
-			if ((userMessage?.models ?? [...selectedModels]).length == 1) {
-				// If user message has only one model selected, sendPrompt automatically selects it for regeneration
-				await sendPrompt(history, userPrompt, userMessage.id);
-			} else {
-				// If there are multiple models selected, use the model of the response message for regeneration
-				// e.g. many model chat
-				await sendPrompt(history, userPrompt, userMessage.id, {
-					modelId: message.model,
-					modelIdx: message.modelIdx
-				});
+			try {
+				if ((userMessage?.models ?? [...selectedModels]).length == 1) {
+					// If user message has only one model selected, sendPrompt automatically selects it for regeneration
+					await sendPrompt(history, userPrompt, userMessage.id);
+				} else {
+					// If there are multiple models selected, use the model of the response message for regeneration
+					// e.g. many model chat
+					if (!message.model) {
+						console.error('No model specified for multi-model regeneration');
+						toast.error($i18n.t('Model not specified for regeneration'));
+						return;
+					}
+					
+					await sendPrompt(history, userPrompt, userMessage.id, {
+						modelId: message.model,
+						modelIdx: message.modelIdx
+					});
+				}
+			} catch (sendError) {
+				console.error('Error sending regeneration prompt:', sendError);
+				toast.error($i18n.t('Failed to regenerate response: {{error}}', { error: sendError.message }));
 			}
+		} catch (e) {
+			console.error('Error in regenerateResponse:', e);
+			toast.error($i18n.t('Failed to regenerate response: {{error}}', { error: e.message || 'Unknown error' }));
 		}
 	};
 
 	const continueResponse = async () => {
 		console.log('continueResponse');
-		const _chatId = JSON.parse(JSON.stringify($chatId));
+		
+		try {
+			const _chatId = JSON.parse(JSON.stringify($chatId));
 
-		if (history.currentId && history.messages[history.currentId].done == true) {
+			if (!history.currentId) {
+				console.error('No current message ID for continue response');
+				toast.error($i18n.t('No active message to continue'));
+				return;
+			}
+			
 			const responseMessage = history.messages[history.currentId];
+			if (!responseMessage) {
+				console.error('Current message not found:', history.currentId);
+				toast.error($i18n.t('Current message not found'));
+				return;
+			}
+			
+			if (responseMessage.done !== true) {
+				console.warn('Message is not completed, cannot continue');
+				toast.warning($i18n.t('Message is still in progress'));
+				return;
+			}
+			
 			responseMessage.done = false;
 			await tick();
 
-			const model = $models
-				.filter((m) => m.id === (responseMessage?.selectedModelId ?? responseMessage.model))
-				.at(0);
+			const modelId = responseMessage?.selectedModelId ?? responseMessage.model;
+			const model = $models.filter((m) => m.id === modelId).at(0);
 
-			if (model) {
-				await sendPromptSocket(history, model, responseMessage.id, _chatId);
+			if (!model) {
+				console.error('Model not found for continue response:', modelId);
+				toast.error($i18n.t('Model {{modelId}} not found for continuing response', { modelId }));
+				responseMessage.done = true;
+				return;
 			}
+			
+			try {
+				await sendPromptSocket(history, model, responseMessage.id, _chatId);
+			} catch (sendError) {
+				console.error('Error continuing response:', sendError);
+				toast.error($i18n.t('Failed to continue response: {{error}}', { error: sendError.message }));
+				responseMessage.done = true;
+				responseMessage.error = {
+					content: $i18n.t('Failed to continue response: {{error}}', { error: sendError.message })
+				};
+			}
+		} catch (e) {
+			console.error('Error in continueResponse:', e);
+			toast.error($i18n.t('Failed to continue response: {{error}}', { error: e.message || 'Unknown error' }));
 		}
 	};
 
 	const mergeResponses = async (messageId, responses, _chatId) => {
 		console.log('mergeResponses', messageId, responses);
+		
+		if (!messageId || !responses || !Array.isArray(responses)) {
+			console.error('Invalid parameters for mergeResponses:', { messageId, responses });
+			toast.error($i18n.t('Invalid merge parameters'));
+			return;
+		}
+		
 		const message = history.messages[messageId];
+		if (!message) {
+			console.error('Message not found for merging:', messageId);
+			toast.error($i18n.t('Message not found for merging'));
+			return;
+		}
+		
 		const mergedResponse = {
 			status: true,
 			content: ''
@@ -1955,87 +2040,168 @@
 			);
 
 			if (res && res.ok && res.body) {
-				const textStream = await createOpenAITextStream(res.body, $settings.splitLargeChunks);
-				for await (const update of textStream) {
-					const { value, done, sources, error, usage } = update;
-					if (error || done) {
-						break;
-					}
+				try {
+					const textStream = await createOpenAITextStream(res.body, $settings.splitLargeChunks);
+					for await (const update of textStream) {
+						const { value, done, sources, error, usage } = update;
+						if (error) {
+							console.error('Stream error during merge:', error);
+							toast.error($i18n.t('Error during response merging: {{error}}', { error }));
+							break;
+						}
+						if (done) {
+							break;
+						}
 
-					if (mergedResponse.content == '' && value == '\n') {
-						continue;
-					} else {
-						mergedResponse.content += value;
-						history.messages[messageId] = message;
-					}
+						if (mergedResponse.content == '' && value == '\n') {
+							continue;
+						} else {
+							mergedResponse.content += value;
+							history.messages[messageId] = message;
+						}
 
-					if (autoScroll) {
-						scrollToBottom();
+						if (autoScroll) {
+							scrollToBottom();
+						}
 					}
+				} catch (streamError) {
+					console.error('Error processing merge stream:', streamError);
+					toast.error($i18n.t('Error processing merged response stream'));
+					mergedResponse.error = {
+						content: $i18n.t('Stream processing failed: {{error}}', { error: streamError.message })
+					};
 				}
 
-				await saveChatHandler(_chatId, history);
+				try {
+					await saveChatHandler(_chatId, history);
+				} catch (saveError) {
+					console.error('Error saving merged chat:', saveError);
+					toast.error($i18n.t('Failed to save merged response'));
+				}
 			} else {
-				console.error(res);
+				console.error('Invalid response for merge:', res);
+				toast.error($i18n.t('Invalid response received for merging'));
+				mergedResponse.error = {
+					content: $i18n.t('Failed to receive valid response for merging')
+				};
 			}
 		} catch (e) {
-			console.error(e);
+			console.error('Error in mergeResponses:', e);
+			toast.error($i18n.t('Failed to merge responses: {{error}}', { error: e.message || 'Unknown error' }));
+			mergedResponse.error = {
+				content: $i18n.t('Merge operation failed: {{error}}', { error: e.message || 'Unknown error' })
+			};
+			history.messages[messageId] = message;
 		}
 	};
 
 	const initChatHandler = async (history) => {
-		let _chatId = $chatId;
+		try {
+			let _chatId = $chatId;
 
-		if (!$temporaryChatEnabled) {
-			chat = await createNewChat(
-				localStorage.token,
-				{
-					id: _chatId,
-					title: $i18n.t('New Chat'),
-					models: selectedModels,
-					system: $settings.system ?? undefined,
-					params: params,
-					history: history,
-					messages: createMessagesList(history, history.currentId),
-					tags: [],
-					timestamp: Date.now()
-				},
-				$selectedFolder?.id
-			);
+			if (!$temporaryChatEnabled) {
+				try {
+					chat = await createNewChat(
+						localStorage.token,
+						{
+							id: _chatId,
+							title: $i18n.t('New Chat'),
+							models: selectedModels,
+							system: $settings.system ?? undefined,
+							params: params,
+							history: history,
+							messages: createMessagesList(history, history.currentId),
+							tags: [],
+							timestamp: Date.now()
+						},
+						$selectedFolder?.id
+					);
 
-			_chatId = chat.id;
-			await chatId.set(_chatId);
+					if (!chat || !chat.id) {
+						throw new Error('Failed to create chat - invalid response');
+					}
 
-			window.history.replaceState(history.state, '', `/c/${_chatId}`);
+					_chatId = chat.id;
+					await chatId.set(_chatId);
 
+					window.history.replaceState(history.state, '', `/c/${_chatId}`);
+
+					await tick();
+
+					try {
+						await chats.set(await getChatList(localStorage.token, $currentChatPage));
+						currentChatPage.set(1);
+					} catch (listError) {
+						console.error('Error updating chat list after creation:', listError);
+						// Don't fail the entire operation for list update errors
+					}
+
+					selectedFolder.set(null);
+				} catch (createError) {
+					console.error('Error creating new chat:', createError);
+					toast.error($i18n.t('Failed to create new chat: {{error}}', { error: createError.message }));
+					// Fall back to temporary chat mode
+					_chatId = 'local';
+					await chatId.set('local');
+					toast.warning($i18n.t('Using temporary chat mode due to creation error'));
+				}
+			} else {
+				_chatId = 'local';
+				await chatId.set('local');
+			}
 			await tick();
 
-			await chats.set(await getChatList(localStorage.token, $currentChatPage));
-			currentChatPage.set(1);
-
-			selectedFolder.set(null);
-		} else {
-			_chatId = 'local';
-			await chatId.set('local');
+			return _chatId;
+		} catch (e) {
+			console.error('Error in initChatHandler:', e);
+			toast.error($i18n.t('Failed to initialize chat: {{error}}', { error: e.message || 'Unknown error' }));
+			// Return a fallback chat ID
+			return 'local';
 		}
-		await tick();
-
-		return _chatId;
 	};
 
 	const saveChatHandler = async (_chatId, history) => {
-		if ($chatId == _chatId) {
-			if (!$temporaryChatEnabled) {
-				chat = await updateChatById(localStorage.token, _chatId, {
-					models: selectedModels,
-					history: history,
-					messages: createMessagesList(history, history.currentId),
-					params: params,
-					files: chatFiles
-				});
-				currentChatPage.set(1);
-				await chats.set(await getChatList(localStorage.token, $currentChatPage));
+		try {
+			if ($chatId !== _chatId) {
+				console.warn('Chat ID mismatch during save:', { current: $chatId, target: _chatId });
+				return;
 			}
+			
+			if (!$temporaryChatEnabled) {
+				if (!_chatId || _chatId === 'local') {
+					console.warn('Cannot save temporary or invalid chat ID:', _chatId);
+					return;
+				}
+				
+				try {
+					chat = await updateChatById(localStorage.token, _chatId, {
+						models: selectedModels,
+						history: history,
+						messages: createMessagesList(history, history.currentId),
+						params: params,
+						files: chatFiles
+					});
+					
+					if (!chat) {
+						throw new Error('Update returned null response');
+					}
+					
+					currentChatPage.set(1);
+					
+					try {
+						await chats.set(await getChatList(localStorage.token, $currentChatPage));
+					} catch (listError) {
+						console.error('Error updating chat list after save:', listError);
+						// Don't fail the entire save operation for list update errors
+					}
+				} catch (updateError) {
+					console.error('Error updating chat:', updateError);
+					toast.error($i18n.t('Failed to save chat: {{error}}', { error: updateError.message }));
+				}
+			}
+		} catch (e) {
+			console.error('Error in saveChatHandler:', e);
+			toast.error($i18n.t('Failed to save chat: {{error}}', { error: e.message || 'Unknown error' }));
 		}
 	};
 </script>

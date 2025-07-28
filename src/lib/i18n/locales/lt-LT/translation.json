@@ -971,7 +971,7 @@
 	"NST-Ai can use tools provided by any OpenAPI server.": "",
 	"NST-Ai uses faster-whisper internally.": "",
 	"NST-Ai uses SpeechT5 and CMU Arctic speaker embeddings.": "",
-	"NST-Ai version (v{{OPEN_WEBUI_VERSION}}) is lower than required version (v{{REQUIRED_VERSION}})": "Tortue Chat versija per sena. Reikalinga (v{{REQUIRED_VERSION}}) versija.",
+	"NST-Ai version (v{{nst_ai_VERSION}}) is lower than required version (v{{REQUIRED_VERSION}})": "Tortue Chat versija per sena. Reikalinga (v{{REQUIRED_VERSION}}) versija.",
 	"OpenAI": "OpenAI",
 	"OpenAI API": "OpenAI API",
 	"OpenAI API Config": "Open AI API nustatymai",
