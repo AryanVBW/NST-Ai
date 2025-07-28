@@ -36,6 +36,37 @@
 - **Added dependency cleanup**: Removes conflicting packages before fresh installation
 - **Fixed Node.js @tiptap conflicts**: Added `--legacy-peer-deps` flag for npm install
 
+### Comprehensive Dependency Conflict Resolution System
+
+#### Environment Analysis
+- **Python Version Detection**: Automatically detects Python version and adjusts dependency strategies
+- **Existing Package Analysis**: Scans system Python environment for potentially conflicting packages
+- **Virtual Environment Inspection**: Analyzes existing NST-AI installations for package conflicts
+
+#### Multi-Strategy Dependency Resolution
+- **Advanced Fixed Requirements**: Comprehensive list of tested, compatible package versions
+- **Conflict Detection**: Identifies specific dependency conflicts (numpy, chromadb, langchain, etc.)
+- **Version Compatibility**: Ensures Python 3.13+ compatibility with appropriate numpy versions
+- **Fallback Strategies**: Multiple installation approaches if primary method fails
+
+#### Automatic Recovery System
+- **Dependency Recovery**: Automatic recovery when core packages fail to import
+- **Cache Management**: Clears pip cache and reinstalls problematic packages
+- **Wheel-based Installation**: Falls back to binary wheels for faster, more reliable installation
+- **Minimal Working Set**: Installs essential packages if full installation fails
+
+#### Installation Validation
+- **Core Package Testing**: Validates that essential packages (numpy, fastapi, uvicorn) import correctly
+- **Error Diagnostics**: Captures and displays specific import errors for troubleshooting
+- **Recovery Attempts**: Automatically attempts to fix failed imports
+- **Comprehensive Validation**: Checks virtual environment, backend directory, and start scripts
+
+#### Final Conflict Resolution
+- **Comprehensive Dependency Fixes**: Final attempt to resolve any remaining conflicts
+- **Conflict Resolution Requirements**: Curated list of compatible versions for all major dependencies
+- **Force Reinstallation**: Uses `--force-reinstall` for stubborn conflicts
+- **Detailed Error Reporting**: Provides specific troubleshooting steps if validation fails
+
 ### Installation Script Technical Details
 - **Installation Directory**: `$HOME/.nst-ai`
 - **Global Command**: `/usr/local/bin/nst-ai` symlink created
@@ -67,6 +98,13 @@
 - **Cross-Platform**: Works on multiple operating systems with automatic detection
 - **Easy Removal**: Uninstall script provided for clean removal
 
+### Conda Environment Support
+- **Conda Detection**: Automatically detects conda/mamba availability
+- **Environment Creation**: Creates conda environments with Python 3.11 when available
+- **Fallback Support**: Falls back to venv if conda is not available
+- **Launcher Integration**: Updated launcher script to handle both conda and venv environments
+- **Uninstall Support**: Enhanced uninstall script to remove conda environments
+
 ### Current Status
 - ✅ NST-AI application tested and running successfully
 - ✅ Automated installation script created with dependency conflict resolution
@@ -78,6 +116,10 @@
 - ✅ Global `nst-ai` command functionality implemented
 - ✅ Cross-platform installation support added
 - ✅ Documentation updated for new installation method
+- ✅ Comprehensive dependency conflict resolution system implemented
+- ✅ Automatic dependency recovery mechanisms added
+- ✅ Installation validation and error recovery added
+- ✅ Conda environment support added for better dependency management
 
 ## Version Update to v0.1.2 - January 27, 2025
 

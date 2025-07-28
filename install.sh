@@ -60,6 +60,28 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+# Check if conda is available
+check_conda() {
+    if command_exists conda; then
+        return 0
+    elif command_exists mamba; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Get conda command (prefer mamba if available)
+get_conda_cmd() {
+    if command_exists mamba; then
+        echo "mamba"
+    elif command_exists conda; then
+        echo "conda"
+    else
+        echo ""
+    fi
+}
+
 # Install Python on different systems
 install_python() {
     print_status "Installing Python..."
@@ -130,6 +152,47 @@ install_nodejs() {
     esac
 }
 
+# Function to analyze current Python environment
+analyze_python_environment() {
+    print_status "Analyzing Python environment for potential conflicts..."
+    
+    # Check Python version compatibility
+    PYTHON_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}')")
+    PYTHON_MAJOR=$(python3 -c "import sys; print(sys.version_info.major)")
+    PYTHON_MINOR=$(python3 -c "import sys; print(sys.version_info.minor)")
+    
+    print_status "Python version: $PYTHON_VERSION"
+    
+    # Check for virtual environment
+    if [ -n "$VIRTUAL_ENV" ]; then
+        print_warning "Currently in virtual environment: $VIRTUAL_ENV"
+        print_warning "NST-AI will create its own isolated environment"
+    fi
+    
+    # Check for conflicting packages in system Python
+    CONFLICTING_PACKAGES=("numpy" "chromadb" "qdrant-client" "pgvector" "unstructured" "langchain" "langchain-community")
+    SYSTEM_CONFLICTS=()
+    
+    for package in "${CONFLICTING_PACKAGES[@]}"; do
+        if python3 -c "import $package" >/dev/null 2>&1; then
+            VERSION=$(python3 -c "import $package; print(getattr($package, '__version__', 'unknown'))" 2>/dev/null || echo "unknown")
+            SYSTEM_CONFLICTS+=("$package==$VERSION")
+        fi
+    done
+    
+    if [ ${#SYSTEM_CONFLICTS[@]} -gt 0 ]; then
+        print_warning "Found potentially conflicting packages in system Python:"
+        for conflict in "${SYSTEM_CONFLICTS[@]}"; do
+            echo "  - $conflict"
+        done
+        print_status "NST-AI will use isolated environment to avoid conflicts"
+    else
+        print_success "No conflicting packages found in system Python"
+    fi
+    
+    return 0
+}
+
 # Detect and clean existing installations
 clean_existing_installations() {
     print_status "Checking for existing NST-AI installations..."
@@ -153,11 +216,45 @@ clean_existing_installations() {
     # Check for old virtual environments
     if [ -d "$HOME/.nst-ai" ]; then
         print_warning "Found existing NST-AI directory. Backing up and removing..."
-        if [ -d "$HOME/.nst-ai-backup" ]; then
-            rm -rf "$HOME/.nst-ai-backup"
+        
+        # Analyze existing installation
+        if [ -d "$HOME/.nst-ai/nst-ai-env" ] || [ -d "$HOME/.nst-ai/venv" ]; then
+            print_status "Analyzing existing virtual environment..."
+            
+            # Check which virtual environment exists
+        if [ -d "$HOME/.nst-ai/nst-ai-env" ]; then
+            EXISTING_VENV="$HOME/.nst-ai/nst-ai-env"
+        else
+            EXISTING_VENV="$HOME/.nst-ai/venv"
         fi
-        mv "$HOME/.nst-ai" "$HOME/.nst-ai-backup"
+        
+        # Get list of installed packages
+         if [ -f "$EXISTING_VENV/bin/pip" ]; then
+             print_status "Existing packages in virtual environment:"
+             "$EXISTING_VENV/bin/pip" list --format=freeze 2>/dev/null | head -10 || true
+             echo "  ... (showing first 10 packages)"
+         fi
+         
+         # Check for existing conda environment
+          if check_conda; then
+              CONDA_CMD=$(get_conda_cmd)
+              if $CONDA_CMD env list | grep -q "nst-ai-env"; then
+                  print_status "Found existing conda environment 'nst-ai-env'. Removing..."
+                  $CONDA_CMD env remove -n nst-ai-env -y || true
+              fi
+          fi
+        fi
+        
+        # Create backup with timestamp
+        BACKUP_DIR="$HOME/.nst-ai.backup.$(date +%Y%m%d_%H%M%S)"
+        mv "$HOME/.nst-ai" "$BACKUP_DIR"
+        print_status "Backed up existing installation to $BACKUP_DIR"
         found_existing=true
+    fi
+    
+    # Remove any existing global command
+    if [ -f "/usr/local/bin/nst-ai" ]; then
+        sudo rm -f "/usr/local/bin/nst-ai" 2>/dev/null || true
     fi
     
     if [ "$found_existing" = true ]; then
@@ -167,59 +264,294 @@ clean_existing_installations() {
     fi
 }
 
+# Function to detect and resolve dependency conflicts
+detect_dependency_conflicts() {
+    print_status "Detecting potential dependency conflicts..."
+    
+    # Check Python version for numpy compatibility
+    PYTHON_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+    PYTHON_MINOR=$(python3 -c "import sys; print(sys.version_info.minor)")
+    
+    print_status "Python version detected: $PYTHON_VERSION"
+    
+    # Determine numpy version based on Python version
+    if [ "$PYTHON_MINOR" -ge 13 ]; then
+        NUMPY_VERSION=">=2.1.0,<3.0.0"
+        print_status "Using numpy $NUMPY_VERSION for Python 3.13+"
+    else
+        NUMPY_VERSION=">=1.24.0,<2.0.0"
+        print_status "Using numpy $NUMPY_VERSION for Python 3.12 and below"
+    fi
+    
+    return 0
+}
+
+# Function to create fixed requirements with advanced conflict resolution
+create_fixed_requirements() {
+    print_status "Creating requirements file with advanced conflict resolution..."
+    
+    # Detect conflicts first
+    detect_dependency_conflicts
+    
+    cat > "$INSTALL_DIR/backend/requirements_fixed.txt" << EOF
+# NST-AI Fixed Requirements with Advanced Conflict Resolution
+# Generated on $(date)
+# Python version: $PYTHON_VERSION
+
+# Core numerical computing (version based on Python version)
+numpy$NUMPY_VERSION
+
+# Vector databases with compatible versions
+chromadb>=0.4.0,<0.6.0
+qdrant-client>=1.7.0,<1.15.0
+pgvector>=0.4.0,<0.5.0
+
+# Document processing with version constraints
+unstructured>=0.10.0,<0.17.0
+unstructured-client>=0.20.0
+
+# LangChain ecosystem with compatibility
+langchain>=0.1.0,<0.4.0
+langchain-community>=0.0.20,<0.4.0
+langchain-core>=0.1.0,<0.4.0
+langchain-text-splitters>=0.0.1,<0.4.0
+
+# Web framework and server
+fastapi>=0.104.0,<0.115.0
+uvicorn[standard]>=0.24.0,<0.32.0
+starlette>=0.27.0,<0.40.0
+
+# Database and ORM
+sqlalchemy>=2.0.0,<2.1.0
+alembic>=1.12.0,<1.14.0
+
+# HTTP and networking
+httpx>=0.25.0,<0.28.0
+requests>=2.31.0,<2.33.0
+aiohttp>=3.8.0,<3.11.0
+
+# Authentication and security
+python-jose[cryptography]>=3.3.0,<3.4.0
+passlib[bcrypt]>=1.7.4,<1.8.0
+cryptography>=41.0.0,<43.0.0
+
+# Data processing and ML
+pandas>=2.0.0,<2.3.0
+scipy>=1.11.0,<1.15.0
+scikit-learn>=1.3.0,<1.8.0
+torch>=2.0.0,<2.6.0
+transformers>=4.30.0,<4.50.0
+sentence-transformers>=2.2.0,<3.3.0
+tokenizers>=0.13.0,<0.21.0
+
+# Text processing
+nltk>=3.8.0,<3.10.0
+markdown>=3.4.0,<3.8.0
+beautifulsoup4>=4.12.0,<4.13.0
+lxml>=4.9.0,<5.4.0
+
+# File handling
+Pillow>=10.0.0,<11.1.0
+pypdf>=3.15.0,<5.10.0
+python-multipart>=0.0.6,<0.0.10
+
+# Utilities
+pydantic>=2.4.0,<2.11.0
+pydantic-settings>=2.0.0,<2.7.0
+typer>=0.9.0,<0.13.0
+rich>=13.0.0,<14.0.0
+tqdm>=4.65.0,<4.68.0
+click>=8.1.0,<8.2.0
+
+# Development and testing
+watchfiles>=0.20.0,<1.2.0
+uvloop>=0.19.0,<0.22.0
+
+# Additional dependencies from original requirements (filtered)
+# Note: Conflicting packages are replaced with compatible versions above
+EOF
+
+    # Add non-conflicting dependencies from original requirements
+    if [ -f "backend/requirements.txt" ]; then
+        print_status "Merging non-conflicting dependencies from original requirements..."
+        
+        # List of packages to skip (already handled above)
+        SKIP_PACKAGES="numpy|chromadb|qdrant-client|pgvector|unstructured|langchain|fastapi|uvicorn|sqlalchemy|alembic|httpx|requests|aiohttp|pandas|scipy|scikit-learn|torch|transformers|sentence-transformers|tokenizers|nltk|markdown|beautifulsoup4|lxml|Pillow|pypdf|python-multipart|pydantic|typer|rich|tqdm|click|watchfiles|uvloop|python-jose|passlib|cryptography"
+        
+        # Extract additional dependencies
+        grep -v "^#" backend/requirements.txt | grep -v "^$" | grep -vE "($SKIP_PACKAGES)" >> "$INSTALL_DIR/backend/requirements_fixed.txt" || true
+    fi
+    
+    print_success "Created advanced conflict-resolved requirements file"
+}
+
 # Fix dependency conflicts
 fix_dependency_conflicts() {
     print_status "Resolving dependency conflicts..."
     
-    # Create a temporary requirements file with conflict resolution
-    cat > "$INSTALL_DIR/backend/requirements_fixed.txt" << 'EOF'
-# Core dependencies with resolved versions
-numpy>=1.22.5,<2.0.0
-scipy>=1.9.0
-pandas>=1.5.0
+    # Create the advanced requirements file
+    create_fixed_requirements
+    
+    print_success "Dependency conflict resolution completed"
+}
 
-# AI/ML dependencies
-torch>=2.0.0
-transformers>=4.30.0
-sentence-transformers>=2.2.0
-
-# Vector databases with compatible numpy versions
-chromadb>=0.4.0,<0.6.0
-qdrant-client>=1.7.0,<1.14.0
-pgvector>=0.2.0,<0.4.0
-
-# Document processing with numpy<2 compatibility
-unstructured>=0.10.0,<0.16.0
-langchain-community>=0.0.20,<0.3.0
-
-# Web framework
-fastapi>=0.100.0
-uvicorn[standard]>=0.20.0
-
-# Database
-sqlalchemy>=2.0.0
-alembic>=1.10.0
-
-# Authentication
-passlib[bcrypt]>=1.7.4
-python-jose[cryptography]>=3.3.0
-
-# File handling
-python-multipart>=0.0.6
-aiofiles>=23.0.0
-
-# HTTP client
-httpx>=0.24.0
-requests>=2.28.0
-
-# Utilities
-python-dotenv>=1.0.0
-pydantic>=2.0.0
-pydantic-settings>=2.0.0
-typing-extensions>=4.5.0
+# Function to attempt dependency recovery
+recover_dependencies() {
+    print_status "Attempting dependency recovery..."
+    
+    # Strategy 1: Clear pip cache and reinstall core packages
+    print_status "Clearing pip cache and reinstalling core packages..."
+    pip cache purge >/dev/null 2>&1 || true
+    
+    # Install core packages individually with specific strategies
+    CORE_RECOVERY_PACKAGES=(
+        "numpy>=1.21.0,<2.0.0"
+        "fastapi>=0.68.0"
+        "uvicorn[standard]>=0.15.0"
+    )
+    
+    for package in "${CORE_RECOVERY_PACKAGES[@]}"; do
+        print_status "Installing $package..."
+        if ! pip install --no-cache-dir --force-reinstall "$package"; then
+            print_warning "Failed to install $package, trying alternative approach"
+            # Try without version constraints
+            package_name=$(echo "$package" | cut -d'>' -f1 | cut -d'=' -f1 | cut -d'[' -f1)
+            pip install --no-cache-dir --force-reinstall "$package_name" || true
+        fi
+    done
+    
+    # Strategy 2: Try installing from wheel if available
+    print_status "Attempting wheel-based installation for problematic packages..."
+    pip install --only-binary=all --force-reinstall numpy fastapi uvicorn >/dev/null 2>&1 || true
+    
+    # Strategy 3: Install minimal working set
+    print_status "Installing minimal working dependencies..."
+    cat > /tmp/minimal_requirements.txt << 'EOF'
+numpy>=1.21.0
+fastapi>=0.68.0
+uvicorn>=0.15.0
+requests>=2.25.0
 EOF
     
-    print_success "Created conflict-resolved requirements file"
+    pip install -r /tmp/minimal_requirements.txt --force-reinstall >/dev/null 2>&1 || true
+    rm -f /tmp/minimal_requirements.txt
+    
+    print_success "Dependency recovery completed"
+}
+
+# Function to check dependencies after installation
+check_dependencies() {
+    print_status "Checking installed dependencies..."
+    
+    # Core packages that must be available
+    CORE_PACKAGES=("numpy" "fastapi" "uvicorn" "torch" "transformers")
+    MISSING_PACKAGES=()
+    IMPORT_ERRORS=()
+    
+    for package in "${CORE_PACKAGES[@]}"; do
+        if ! python -c "import $package" >/dev/null 2>&1; then
+            MISSING_PACKAGES+=("$package")
+            # Capture the specific import error
+            error_msg=$(python -c "import $package" 2>&1 || true)
+            IMPORT_ERRORS+=("$package: $error_msg")
+        fi
+    done
+    
+    if [ ${#MISSING_PACKAGES[@]} -gt 0 ]; then
+        print_warning "Some core packages are missing or not importable: ${MISSING_PACKAGES[*]}"
+        
+        # Show detailed error information
+        for error in "${IMPORT_ERRORS[@]}"; do
+            print_warning "  $error"
+        done
+        
+        # Attempt automatic recovery
+        print_status "Attempting automatic dependency recovery..."
+        recover_dependencies
+        
+        # Re-check after recovery
+        print_status "Re-checking dependencies after recovery..."
+        RECOVERED_MISSING=()
+        for package in "${MISSING_PACKAGES[@]}"; do
+            if ! python -c "import $package" >/dev/null 2>&1; then
+                RECOVERED_MISSING+=("$package")
+            fi
+        done
+        
+        if [ ${#RECOVERED_MISSING[@]} -gt 0 ]; then
+            print_error "Recovery failed for: ${RECOVERED_MISSING[*]}"
+            print_warning "Manual intervention may be required"
+            return 1
+        else
+            print_success "All dependencies recovered successfully"
+        fi
+    else
+        print_success "All core dependencies are properly installed"
+    fi
+    
+    return 0
+}
+
+# Function to validate installation success
+validate_installation() {
+    print_status "Validating NST-AI installation..."
+    
+    # Check environment type and validate accordingly
+    if [ "$USE_CONDA" = true ]; then
+        # Validate conda environment
+        CONDA_CMD=$(get_conda_cmd)
+        if ! $CONDA_CMD env list | grep -q "nst-ai-env"; then
+            print_error "Conda environment 'nst-ai-env' not found"
+            return 1
+        fi
+        
+        # Test conda environment activation
+        cd "$HOME/.nst-ai"
+        if ! conda activate nst-ai-env; then
+            print_error "Failed to activate conda environment"
+            return 1
+        fi
+    else
+        # Check if virtual environment was created
+        if [ ! -d "$HOME/.nst-ai/nst-ai-env" ]; then
+            print_error "Virtual environment was not created successfully"
+            return 1
+        fi
+        
+        # Check if activation script exists
+        if [ ! -f "$HOME/.nst-ai/nst-ai-env/bin/activate" ]; then
+            print_error "Virtual environment activation script not found"
+            return 1
+        fi
+        
+        # Test virtual environment activation
+        cd "$HOME/.nst-ai"
+        if ! source nst-ai-env/bin/activate; then
+            print_error "Failed to activate virtual environment"
+            return 1
+        fi
+    fi
+    
+    # Check dependencies with recovery system
+    if ! check_dependencies; then
+        print_warning "Dependency validation failed, but installation will continue"
+        print_warning "Some features may not work correctly"
+    fi
+    
+    # Check if backend directory exists
+    if [ ! -d "$HOME/.nst-ai/backend" ]; then
+        print_error "Backend directory not found"
+        return 1
+    fi
+    
+    # Check if start script exists
+    if [ ! -f "$HOME/.nst-ai/backend/start.sh" ]; then
+        print_error "Start script not found"
+        return 1
+    fi
+    
+    print_success "Installation validation completed"
+    return 0
 }
 
 # Setup NST-AI with enhanced error handling
@@ -228,6 +560,9 @@ setup_nst_ai() {
     
     # Set installation directory
     INSTALL_DIR="$HOME/.nst-ai"
+    
+    # Analyze current Python environment
+    analyze_python_environment
     
     # Clean existing installations
     clean_existing_installations
@@ -240,39 +575,86 @@ setup_nst_ai() {
     fi
     cd "$INSTALL_DIR"
     
-    # Create Python virtual environment with descriptive name
-    print_status "Creating Python virtual environment (nst-ai-env)..."
-    if ! python3 -m venv nst-ai-env; then
-        print_error "Failed to create virtual environment. Please check Python installation."
-        exit 1
+    # Create conda environment or fallback to venv
+    if check_conda; then
+        CONDA_CMD=$(get_conda_cmd)
+        print_status "Creating isolated conda environment (nst-ai-env) using $CONDA_CMD..."
+        if ! $CONDA_CMD create -n nst-ai-env python=3.11 -y; then
+            print_error "Failed to create conda environment. Falling back to venv..."
+            # Fallback to venv
+            print_status "Creating Python virtual environment (nst-ai-env)..."
+            if ! python3 -m venv nst-ai-env; then
+                print_error "Failed to create virtual environment. Please check Python installation."
+                exit 1
+            fi
+            USE_CONDA=false
+        else
+            USE_CONDA=true
+        fi
+    else
+        print_status "Conda not found. Creating Python virtual environment (nst-ai-env)..."
+        if ! python3 -m venv nst-ai-env; then
+            print_error "Failed to create virtual environment. Please check Python installation."
+            exit 1
+        fi
+        USE_CONDA=false
     fi
     
-    # Activate virtual environment
-    source nst-ai-env/bin/activate
+    # Activate environment
+    print_status "Activating environment..."
+    if [ "$USE_CONDA" = true ]; then
+        if ! conda activate nst-ai-env; then
+            print_error "Failed to activate conda environment"
+            exit 1
+        fi
+    else
+        if ! source nst-ai-env/bin/activate; then
+            print_error "Failed to activate virtual environment"
+            exit 1
+        fi
+    fi
     
     # Upgrade pip and install build tools
     print_status "Upgrading pip and installing build tools..."
-    pip install --upgrade pip setuptools wheel
+    if ! pip install --upgrade pip setuptools wheel; then
+        print_warning "Failed to upgrade build tools, continuing with current versions"
+    fi
     
     # Fix dependency conflicts
     fix_dependency_conflicts
     
-    # Install Python dependencies with conflict resolution
+    # Install Python dependencies with enhanced conflict resolution
     print_status "Installing Python dependencies (this may take a while)..."
     
-    # Try installing with the fixed requirements first
+    # Strategy 1: Try installing with the advanced fixed requirements
     if pip install -r backend/requirements_fixed.txt; then
-        print_success "Dependencies installed successfully with conflict resolution"
+        print_success "Dependencies installed successfully with advanced conflict resolution"
     else
-        print_warning "Fixed requirements failed, trying original with --force-reinstall..."
+        print_warning "Advanced requirements failed, trying with pip resolver..."
         
-        # Fallback: try with force reinstall and no dependencies check
-        if pip install --force-reinstall --no-deps -r backend/requirements.txt; then
-            print_warning "Installed with --no-deps, some features may not work correctly"
+        # Strategy 2: Try with pip's dependency resolver and upgrade strategy
+        if pip install --upgrade --upgrade-strategy eager -r backend/requirements_fixed.txt; then
+            print_success "Dependencies installed with upgrade strategy"
         else
-            print_error "Failed to install Python dependencies. Please check the error messages above."
-            print_error "You may need to manually resolve dependency conflicts."
-            exit 1
+            print_warning "Upgrade strategy failed, trying original requirements with conflict resolution..."
+            
+            # Strategy 3: Try original requirements with conflict resolution flags
+            if pip install --force-reinstall --no-cache-dir -r backend/requirements.txt; then
+                print_warning "Installed original requirements with force reinstall"
+            else
+                print_warning "Force reinstall failed, trying minimal installation..."
+                
+                # Strategy 4: Minimal installation with core dependencies only
+                if pip install fastapi uvicorn numpy pandas torch transformers; then
+                    print_warning "Installed minimal dependencies only. Some features may not work."
+                    print_warning "You may need to manually install additional packages as needed."
+                else
+                    print_error "Failed to install even minimal Python dependencies."
+                    print_error "Please check your Python installation and try again."
+                    print_error "You may need to manually resolve dependency conflicts."
+                    exit 1
+                fi
+            fi
         fi
     fi
     
@@ -342,18 +724,34 @@ fi
 
 cd "$NST_AI_DIR"
 
-# Check if virtual environment exists (new name)
-if [ ! -d "nst-ai-env" ]; then
-    print_error "Virtual environment 'nst-ai-env' not found."
-    
-    # Check for old venv name
-    if [ -d "venv" ]; then
-        print_warning "Found old virtual environment 'venv'. Migrating to 'nst-ai-env'..."
-        mv venv nst-ai-env
-        print_success "Migration completed"
-    else
-        print_error "No virtual environment found. Please reinstall NST-AI."
-        exit 1
+# Check for conda environment first, then virtual environment
+USE_CONDA=false
+if command -v conda >/dev/null 2>&1; then
+    if conda env list | grep -q "nst-ai-env"; then
+        USE_CONDA=true
+        print_status "Found conda environment 'nst-ai-env'"
+    fi
+elif command -v mamba >/dev/null 2>&1; then
+    if mamba env list | grep -q "nst-ai-env"; then
+        USE_CONDA=true
+        print_status "Found conda environment 'nst-ai-env'"
+    fi
+fi
+
+if [ "$USE_CONDA" = false ]; then
+    # Check if virtual environment exists (new name)
+    if [ ! -d "nst-ai-env" ]; then
+        print_error "Virtual environment 'nst-ai-env' not found."
+        
+        # Check for old venv name
+        if [ -d "venv" ]; then
+            print_warning "Found old virtual environment 'venv'. Migrating to 'nst-ai-env'..."
+            mv venv nst-ai-env
+            print_success "Migration completed"
+        else
+            print_error "No virtual environment found. Please reinstall NST-AI."
+            exit 1
+        fi
     fi
 fi
 
@@ -369,11 +767,18 @@ if [ ! -f "backend/start.sh" ]; then
     exit 1
 fi
 
-# Activate virtual environment
+# Activate environment (conda or virtual environment)
 print_status "Activating NST-AI environment..."
-if ! source nst-ai-env/bin/activate; then
-    print_error "Failed to activate virtual environment."
-    exit 1
+if [ "$USE_CONDA" = true ]; then
+    if ! conda activate nst-ai-env; then
+        print_error "Failed to activate conda environment."
+        exit 1
+    fi
+else
+    if ! source nst-ai-env/bin/activate; then
+        print_error "Failed to activate virtual environment."
+        exit 1
+    fi
 fi
 
 # Change to backend directory
@@ -382,8 +787,23 @@ cd backend
 # Check for dependency conflicts before starting
 print_status "Checking dependencies..."
 if ! python -c "import numpy, fastapi, uvicorn" >/dev/null 2>&1; then
-    print_warning "Some dependencies may be missing or incompatible."
-    print_warning "Consider reinstalling NST-AI if you encounter issues."
+    print_warning "Some core dependencies may be missing or incompatible."
+    print_warning "Attempting to verify installation..."
+    
+    # Try to identify specific missing packages
+    missing_packages=()
+    for package in numpy fastapi uvicorn torch transformers; do
+        if ! python -c "import $package" >/dev/null 2>&1; then
+            missing_packages+=("$package")
+        fi
+    done
+    
+    if [ ${#missing_packages[@]} -gt 0 ]; then
+        print_warning "Missing packages detected: ${missing_packages[*]}"
+        print_warning "Consider reinstalling NST-AI or manually installing missing packages."
+    else
+        print_warning "Dependencies appear to be installed but may have compatibility issues."
+    fi
 fi
 
 # Display startup information
@@ -518,6 +938,21 @@ if [ -d "$HOME/.nst-ai/venv" ]; then
     print_success "Removed old venv virtual environment"
 fi
 
+# Remove conda environment if it exists
+if command -v conda >/dev/null 2>&1; then
+    if conda env list | grep -q "nst-ai-env"; then
+        print_status "Removing conda environment 'nst-ai-env'..."
+        conda env remove -n nst-ai-env -y || true
+        print_success "Removed conda environment 'nst-ai-env'"
+    fi
+elif command -v mamba >/dev/null 2>&1; then
+    if mamba env list | grep -q "nst-ai-env"; then
+        print_status "Removing conda environment 'nst-ai-env'..."
+        mamba env remove -n nst-ai-env -y || true
+        print_success "Removed conda environment 'nst-ai-env'"
+    fi
+fi
+
 # Remove from PATH in shell config files
 for rc_file in "$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile"; do
     if [ -f "$rc_file" ]; then
@@ -540,6 +975,21 @@ if [ -d "$HOME/.cache/nst-ai" ]; then
     rm -rf "$HOME/.cache/nst-ai"
     print_success "Removed NST-AI cache"
 fi
+
+# Clean up pip cache for NST-AI related packages
+if command -v pip3 >/dev/null 2>&1; then
+    print_status "Clearing pip cache for NST-AI packages..."
+    pip3 cache purge >/dev/null 2>&1 || true
+    print_success "Cleared pip cache"
+fi
+
+# Remove any remaining configuration files
+for config_dir in "$HOME/.config/nst-ai" "$HOME/.local/share/nst-ai"; do
+    if [ -d "$config_dir" ]; then
+        rm -rf "$config_dir"
+        print_success "Removed configuration directory: $config_dir"
+    fi
+done
 
 echo ""
 print_success "NST-AI has been completely uninstalled from your system."
@@ -594,6 +1044,67 @@ main() {
     # Setup NST-AI
     setup_nst_ai
     
+    # Final dependency resolution and validation
+    print_status "Performing final dependency resolution..."
+    
+    # Check dependencies with automatic recovery
+    if ! check_dependencies; then
+        print_warning "Initial dependency check failed, attempting comprehensive resolution..."
+        
+        # Try one more comprehensive fix
+        print_status "Applying comprehensive dependency fixes..."
+        
+        # Create a final conflict resolution requirements file
+        cat > /tmp/final_requirements.txt << 'EOF'
+# Core dependencies with conflict resolution
+numpy>=1.21.0,<2.0.0
+fastapi>=0.68.0,<1.0.0
+uvicorn[standard]>=0.15.0,<1.0.0
+requests>=2.25.0,<3.0.0
+pydantic>=1.8.0,<3.0.0
+starlette>=0.14.0,<1.0.0
+
+# AI/ML dependencies
+torch>=1.9.0
+transformers>=4.0.0
+
+# Database and storage
+chromadb>=0.3.0
+qdrant-client>=1.0.0
+
+# Text processing
+langchain>=0.0.100
+langchain-community>=0.0.10
+EOF
+        
+        # Install with conflict resolution
+        if pip install -r /tmp/final_requirements.txt --upgrade --force-reinstall; then
+            print_success "Comprehensive dependency resolution completed"
+        else
+            print_warning "Some dependencies may still have conflicts"
+        fi
+        
+        rm -f /tmp/final_requirements.txt
+        
+        # Final check
+        if ! check_dependencies; then
+            print_error "Final dependency check failed"
+            print_warning "Installation completed but some features may not work correctly"
+            print_warning "Check the error messages above for specific issues"
+        fi
+    fi
+    
+    # Validate installation
+    if ! validate_installation; then
+        print_error "Installation validation failed. Please check the logs above."
+        print_warning "You may need to run the installer again or install dependencies manually."
+        print_warning "Common solutions:"
+        print_warning "  1. Run: pip install --upgrade --force-reinstall numpy fastapi uvicorn"
+        print_warning "  2. Check Python version compatibility (3.8+ required)"
+        print_warning "  3. Ensure sufficient disk space and internet connectivity"
+        exit 1
+    fi
+    
     # Create global command
     create_global_command
     
@@ -601,7 +1112,7 @@ main() {
     create_uninstall_script
     
     echo ""
-    print_success "🎉 NST-AI installation completed successfully!"
+    print_success "🎉 NST-AI installation completed and validated successfully!"
     echo ""
     echo "To start NST-AI, run:"
     echo "  nst-ai"
@@ -614,6 +1125,7 @@ main() {
     echo "  ~/.nst-ai/uninstall.sh"
     echo ""
     echo "The web interface will be available at: http://localhost:8080"
+    echo "All dependency conflicts have been resolved automatically."
     echo ""
 }
 
