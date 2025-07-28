@@ -1,5 +1,68 @@
 # NST-Ai Updates Log
 
+## Automated Installation Script and Application Testing - January 28, 2025
+
+### Application Testing
+- **Backend Server**: Successfully tested and verified NST-AI application startup
+- **Server Status**: Backend running successfully on http://localhost:8080
+- **Command Used**: `cd /Users/vivek-w/Production/PyPI/NST-Ai/backend && ./start.sh`
+- **Process**: Server started with process ID 62838
+- **Features Verified**: 
+  - Application banner and branding display correctly
+  - External dependencies installation working
+  - Server startup sequence completed successfully
+  - Web interface accessible and functional
+
+### Automated Installation Script Creation
+- **File Created**: `install.sh` - Comprehensive installation script for NST-AI
+- **Script Features**:
+  - 🔍 **OS Detection**: Automatically detects Linux (Debian/Ubuntu, RedHat/CentOS/Fedora, Arch), macOS, and Windows
+  - 📦 **Dependency Management**: Installs Python 3, Node.js, Git, and other required dependencies
+  - ⚙️ **Environment Setup**: Creates Python virtual environment and installs all requirements
+  - 🌐 **Frontend Build**: Automatically builds the frontend application
+  - 🔗 **Global Command**: Creates `nst-ai` command accessible from anywhere in the terminal
+  - 🗑️ **Uninstall Support**: Includes uninstall script for easy removal
+  - 🎨 **User Experience**: Colored output, progress indicators, and clear status messages
+
+### Installation Script Technical Details
+- **Installation Directory**: `$HOME/.nst-ai`
+- **Global Command**: `/usr/local/bin/nst-ai` symlink created
+- **PATH Integration**: Automatically adds to shell configuration files (.bashrc, .zshrc, .profile)
+- **Repository Cloning**: Clones from https://github.com/AryanVBW/NST-Ai.git
+- **Virtual Environment**: Creates isolated Python environment with all dependencies
+- **Frontend Build**: Runs `npm install` and `npm run build` automatically
+- **Error Handling**: Comprehensive error checking and user-friendly messages
+
+### README.md Updates
+- **New Installation Section**: Added prominent "🚀 One-Line Installation (Recommended)" section
+- **Curl Installation**: Added one-line installation command:
+  ```bash
+  curl -fsSL https://raw.githubusercontent.com/AryanVBW/NST-Ai/main/install.sh | bash
+  ```
+- **Usage Instructions**: Clear instructions for running `nst-ai` command after installation
+- **Feature Documentation**: Detailed list of automated installer features
+- **OS Support**: Documented supported operating systems and requirements
+- **User Experience**: Improved documentation structure and readability
+
+### File Permissions
+- **install.sh**: Made executable with `chmod +x` for direct execution
+- **Global Access**: Script can be run directly or via curl installation method
+
+### User Experience Improvements
+- **One-Command Installation**: Users can now install NST-AI with a single curl command
+- **Global Access**: `nst-ai` command available from any directory after installation
+- **Automatic Setup**: No manual configuration required - everything is automated
+- **Cross-Platform**: Works on multiple operating systems with automatic detection
+- **Easy Removal**: Uninstall script provided for clean removal
+
+### Current Status
+- ✅ NST-AI application tested and running successfully
+- ✅ Automated installation script created and tested
+- ✅ README.md updated with new installation instructions
+- ✅ Global `nst-ai` command functionality implemented
+- ✅ Cross-platform installation support added
+- ✅ Documentation updated for new installation method
+
 ## Version Update to v0.1.2 - January 27, 2025
 
 ### Version Change

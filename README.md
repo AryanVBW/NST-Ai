@@ -1,18 +1,8 @@
 # NST-Ai 👋
 
-![GitHub stars](https://img.shields.io/github/stars/AryanVBW/NST-Ai?style=social)
-![GitHub forks](https://img.shields.io/github/forks/AryanVBW/NST-Ai?style=social)
-![GitHub watchers](https://img.shields.io/github/watchers/AryanVBW/NST-Ai?style=social)
-![GitHub repo size](https://img.shields.io/github/repo-size/AryanVBW/NST-Ai)
-![GitHub language count](https://img.shields.io/github/languages/count/AryanVBW/NST-Ai)
-![GitHub top language](https://img.shields.io/github/languages/top/AryanVBW/NST-Ai)
-![GitHub last commit](https://img.shields.io/github/last-commit/AryanVBW/NST-Ai?color=red)
 
-**NST-Ai is an [extensible](https://docs.nst-ai.com/features/plugin/), feature-rich, and user-friendly self-hosted AI Study Buddy designed to assist students in their studies.** It supports various LLM runners like **Ollama** and **OpenAI-compatible APIs**, with **built-in inference engine** for RAG, making it a **powerful AI deployment solution for educational purposes**.
 
-![NST-Ai Demo](./demo.gif)
 
-For more information, be sure to check out our [NST-Ai Documentation](https://docs.nst-ai.com/).
 
 ## Key Features of NST-Ai ⭐
 
@@ -55,6 +45,35 @@ For more information, be sure to check out our [NST-Ai Documentation](https://do
 Want to learn more about NST-Ai's features? Check out our [NST-Ai documentation](https://docs.nst-ai.com/features) for a comprehensive overview!
 
 ## How to Install 🚀
+
+### 🚀 One-Line Installation (Recommended)
+
+The easiest way to install NST-AI is using our automated installation script that detects your OS, installs all dependencies, and sets up everything for you:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/AryanVBW/NST-Ai/main/install.sh | bash
+```
+
+After installation, you can start NST-AI from anywhere by simply running:
+
+```bash
+nst-ai
+```
+
+The web interface will be available at [http://localhost:8080](http://localhost:8080)
+
+**Features of the automated installer:**
+- 🔍 Automatically detects your operating system (Linux, macOS, Windows)
+- 📦 Installs all required dependencies (Python, Node.js, Git)
+- ⚙️ Sets up virtual environment and installs all requirements
+- 🌐 Builds the frontend application
+- 🔗 Creates a global `nst-ai` command accessible from anywhere
+- 🗑️ Includes an uninstall script for easy removal
+
+**Supported Operating Systems:**
+- Linux (Debian/Ubuntu, RedHat/CentOS/Fedora, Arch Linux)
+- macOS (with Homebrew)
+- Windows (manual Python installation required)
 
 ### Installation via Python pip 🐍
 
