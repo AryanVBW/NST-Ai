@@ -24,6 +24,18 @@
   - 🗑️ **Uninstall Support**: Includes uninstall script for easy removal
   - 🎨 **User Experience**: Colored output, progress indicators, and clear status messages
 
+### 🔧 Dependency Conflict Resolution
+- **Fixed Python numpy version conflicts**: Resolved `ResolutionImpossible` errors between:
+  - `pgvector 0.4.0` (depends on numpy)
+  - `langchain-community 0.3.26` (depends on numpy>=2.1.0 for Python 3.13+)
+  - `chromadb 0.6.3` (depends on numpy>=1.22.5)
+  - `qdrant-client 1.14.3` (depends on numpy>=2.1.0 for Python 3.13+)
+  - `unstructured 0.16.25` (depends on numpy<2)
+- **Created `requirements_fixed.txt`**: Specified compatible versions for all conflicting packages
+- **Enhanced virtual environment**: Named `nst-ai-env` for better identification
+- **Added dependency cleanup**: Removes conflicting packages before fresh installation
+- **Fixed Node.js @tiptap conflicts**: Added `--legacy-peer-deps` flag for npm install
+
 ### Installation Script Technical Details
 - **Installation Directory**: `$HOME/.nst-ai`
 - **Global Command**: `/usr/local/bin/nst-ai` symlink created
@@ -57,7 +69,11 @@
 
 ### Current Status
 - ✅ NST-AI application tested and running successfully
-- ✅ Automated installation script created and tested
+- ✅ Automated installation script created with dependency conflict resolution
+- ✅ Python numpy conflicts resolved with fixed requirements
+- ✅ Node.js @tiptap conflicts handled with legacy peer deps
+- ✅ Enhanced launcher with better error handling and UX
+- ✅ Comprehensive uninstaller with complete cleanup
 - ✅ README.md updated with new installation instructions
 - ✅ Global `nst-ai` command functionality implemented
 - ✅ Cross-platform installation support added
