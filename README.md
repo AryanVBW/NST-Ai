@@ -87,8 +87,12 @@ For other installation methods, including Docker and pip, please refer to our [I
 
 
 <p align="center">
-  <b>Compiler and Database Features</b><br>
-  <img src="img/compiler.gif" alt="Compiler GIF" width="400">
+  <b>Compiler Feature</b><br>
+  <video src="img/compiler.gif" autoplay loop muted playsinline width="600"></video>
+</p>
+
+<p align="center">
+  <b>Database Feature</b><br>
   <img src="img/databse.png" alt="Database Management" width="400">
 </p>
 
