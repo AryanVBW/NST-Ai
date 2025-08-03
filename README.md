@@ -26,7 +26,7 @@ Have natural and dynamic conversations with your AI assistant.
 Switch between different AI models to get the best assistance for your specific needs.
 
 <p align="center">
-  <video src="img/model_selection.mov" autoplay loop muted playsinline width="600"></video>
+  <img src="img/model_selection.gif" alt="Model Selection GIF" width="600">
 </p>
 
 ### 💻 Code Like a Pro
@@ -34,7 +34,7 @@ Switch between different AI models to get the best assistance for your specific 
 Get help with coding, debugging, and even run code snippets directly within the interface.
 
 <p align="center">
-  <video src="img/code_run.mov" autoplay loop muted playsinline width="600"></video>
+  <img src="img/code_run.gif" alt="Code Run GIF" width="600">
 </p>
 
 ### 🌐 Web Development Assistant
@@ -65,12 +65,12 @@ For other installation methods, including Docker and pip, please refer to our [I
 
 <p align="center">
   <b>Qurion Chat</b><br>
-  <video src="img/qurion_chat.mov" autoplay loop muted playsinline width="600"></video>
+  <img src="img/qurion_chat.gif" alt="Qurion Chat GIF" width="600">
 </p>
 
 <p align="center">
   <b>Sign-in Process</b><br>
-  <video src="img/signin.mov" autoplay loop muted playsinline width="300"></video>
+  <img src="img/signin.gif" alt="Sign-in GIF" width="300">
   <br><i>Seamless and secure sign-in and sign-up.</i>
 </p>
 
@@ -82,13 +82,13 @@ For other installation methods, including Docker and pip, please refer to our [I
 
 <p align="center">
   <b>Command Line Interface</b><br>
-  <video src="img/cli.mov" autoplay loop muted playsinline width="600"></video>
+  <img src="img/cli.gif" alt="CLI GIF" width="600">
 </p>
 
 
 <p align="center">
   <b>Compiler Feature</b><br>
-  <video src="img/compiler.gif" autoplay loop muted playsinline width="600"></video>
+  <img src="img/compiler.gif" alt="Compiler GIF" width="600">
 </p>
 
 <p align="center">
