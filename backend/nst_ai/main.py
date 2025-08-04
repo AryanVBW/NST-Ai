@@ -85,6 +85,7 @@ from nst_ai.routers import (
     tools,
     users,
     utils,
+    mcp,
 )
 
 from nst_ai.routers.retrieval import (
@@ -646,6 +647,17 @@ app.state.TOOL_SERVERS = []
 
 ########################################
 #
+# MCP (Model Context Protocol)
+#
+########################################
+
+from nst_ai.config import MCP_SERVER_CONNECTIONS
+
+app.state.config.MCP_SERVER_CONNECTIONS = MCP_SERVER_CONNECTIONS
+app.state.MCP_SERVERS = {}
+
+########################################
+#
 # DIRECT CONNECTIONS
 #
 ########################################
@@ -1200,6 +1212,12 @@ app.include_router(configs.router, prefix="/api/v1/configs", tags=["configs"])
 app.include_router(auths.router, prefix="/api/v1/auths", tags=["auths"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 
+# Import and include workflows router
+try:
+    from nst_ai.routers import workflows
+    app.include_router(workflows.router, prefix="/api/v1/workflows", tags=["workflows"])
+except ImportError:
+    print("Warning: Workflows router not available")
 
 app.include_router(channels.router, prefix="/api/v1/channels", tags=["channels"])
 app.include_router(chats.router, prefix="/api/v1/chats", tags=["chats"])
@@ -1210,6 +1228,7 @@ app.include_router(models.router, prefix="/api/v1/models", tags=["models"])
 app.include_router(knowledge.router, prefix="/api/v1/knowledge", tags=["knowledge"])
 app.include_router(prompts.router, prefix="/api/v1/prompts", tags=["prompts"])
 app.include_router(tools.router, prefix="/api/v1/tools", tags=["tools"])
+app.include_router(mcp.router, prefix="/api/v1/mcp", tags=["mcp"])
 
 app.include_router(memories.router, prefix="/api/v1/memories", tags=["memories"])
 app.include_router(folders.router, prefix="/api/v1/folders", tags=["folders"])

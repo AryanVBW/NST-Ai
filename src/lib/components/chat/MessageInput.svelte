@@ -56,6 +56,7 @@
 	import FilesOverlay from './MessageInput/FilesOverlay.svelte';
 	import Commands from './MessageInput/Commands.svelte';
 	import ToolServersModal from './ToolServersModal.svelte';
+	import McpButton from './McpButton.svelte';
 
 	import RichTextInput from '../common/RichTextInput.svelte';
 	import Tooltip from '../common/Tooltip.svelte';
@@ -102,6 +103,10 @@
 	export let imageGenerationEnabled = false;
 	export let webSearchEnabled = false;
 	export let codeInterpreterEnabled = false;
+
+	// MCP (Model Context Protocol) configuration
+	export let mcpServersEnabled = false;
+	export let selectedMcpServers = [];
 
 	let showInputVariablesModal = false;
 	let inputVariables = {};
@@ -370,6 +375,19 @@
 
 	let command = '';
 
+	// MCP change handler
+	const handleMcpServersChanged = (event) => {
+		const { enabled, selectedServers } = event.detail;
+		mcpServersEnabled = enabled;
+		selectedMcpServers = selectedServers;
+		
+		// Notify parent component about the change if needed
+		dispatch('mcpChanged', {
+			enabled: mcpServersEnabled,
+			selectedServers: selectedMcpServers
+		});
+	};
+
 	export let showCommands = false;
 	$: showCommands = ['/', '#', '@'].includes(command?.charAt(0)) || '\\#' === command?.slice(0, 2);
 
@@ -453,6 +471,11 @@
 			codeInterpreterCapableModels.length &&
 		$config?.features?.enable_code_interpreter &&
 		($_user.role === 'admin' || $_user?.permissions?.features?.code_interpreter);
+
+	let showMcpButton = false;
+	$: showMcpButton =
+		$config?.features?.enable_mcp !== false &&
+		($_user.role === 'admin' || $_user?.permissions?.features?.mcp !== false);
 
 	const scrollToBottom = () => {
 		const element = document.getElementById('messages-container');
@@ -1763,6 +1786,14 @@
 															>
 														</button>
 													</Tooltip>
+												{/if}
+
+												{#if showMcpButton}
+													<McpButton
+														bind:mcpServersEnabled
+														bind:selectedMcpServers
+														on:mcpServersChanged={handleMcpServersChanged}
+													/>
 												{/if}
 											</div>
 										{/if}

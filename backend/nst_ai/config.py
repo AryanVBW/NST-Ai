@@ -987,6 +987,44 @@ TOOL_SERVER_CONNECTIONS = PersistentConfig(
 )
 
 ####################################
+# MCP (Model Context Protocol) Config
+####################################
+
+# Load MCP server connections from environment or default to empty list
+try:
+    mcp_server_connections = json.loads(
+        os.environ.get("MCP_SERVER_CONNECTIONS", "[]")
+    )
+except Exception as e:
+    log.exception(f"Error loading MCP_SERVER_CONNECTIONS: {e}")
+    mcp_server_connections = []
+
+
+MCP_SERVER_CONNECTIONS = PersistentConfig(
+    "MCP_SERVER_CONNECTIONS",
+    "mcp.server_connections",
+    mcp_server_connections,
+)
+
+MCP_ENABLE_AUTO_DISCOVERY = PersistentConfig(
+    "MCP_ENABLE_AUTO_DISCOVERY",
+    "mcp.auto_discovery",
+    os.environ.get("MCP_ENABLE_AUTO_DISCOVERY", "False").lower() == "true",
+)
+
+MCP_SESSION_TIMEOUT = PersistentConfig(
+    "MCP_SESSION_TIMEOUT",
+    "mcp.session_timeout",
+    int(os.environ.get("MCP_SESSION_TIMEOUT", "3600")),  # 1 hour default
+)
+
+MCP_ENABLE_AUTHENTICATION = PersistentConfig(
+    "MCP_ENABLE_AUTHENTICATION",
+    "mcp.enable_authentication",
+    os.environ.get("MCP_ENABLE_AUTHENTICATION", "True").lower() == "true",
+)
+
+####################################
 # WEBUI
 ####################################
 

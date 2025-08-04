@@ -22,13 +22,12 @@
 	import ShareChatModal from '../chat/ShareChatModal.svelte';
 	import ModelSelector from '../chat/ModelSelector.svelte';
 	import Tooltip from '../common/Tooltip.svelte';
+	import Banner from '../common/Banner.svelte';
 	import Menu from '$lib/components/layout/Navbar/Menu.svelte';
 	import UserMenu from '$lib/components/layout/Sidebar/UserMenu.svelte';
 	import MenuLines from '../icons/MenuLines.svelte';
 	import AdjustmentsHorizontal from '../icons/AdjustmentsHorizontal.svelte';
-
 	import PencilSquare from '../icons/PencilSquare.svelte';
-	import Banner from '../common/Banner.svelte';
 
 	const i18n = getContext('i18n');
 
@@ -271,6 +270,31 @@
 								}}
 							/>
 						{/each}
+
+						<!-- Workflow Management Quick Access for Admin -->
+						{#if $user?.role === 'admin' && !JSON.parse(localStorage.getItem('dismissedBannerIds') ?? '[]').includes('workflow-management-quick-access')}
+							<Banner
+								banner={{
+									id: 'workflow-management-quick-access',
+									type: 'info',
+									title: 'Workflow Management Available',
+									content: 'Access NST-AI Workflow Management from the user menu or admin panel to automate tasks and create powerful workflows.',
+									url: '/workflow-management',
+									dismissable: true,
+									timestamp: Math.floor(Date.now() / 1000)
+								}}
+								on:dismiss={(e) => {
+									const bannerId = e.detail;
+									localStorage.setItem(
+										'dismissedBannerIds',
+										JSON.stringify([
+											bannerId,
+											...JSON.parse(localStorage.getItem('dismissedBannerIds') ?? '[]')
+										])
+									);
+								}}
+							/>
+						{/if}
 					{/if}
 				</div>
 			</div>

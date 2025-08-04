@@ -10,6 +10,7 @@
 		updateLdapConfig,
 		updateLdapServer
 	} from '$lib/apis/auths';
+	import { workflowService } from '$lib/apis/workflows';
 	import SensitiveInput from '$lib/components/common/SensitiveInput.svelte';
 	import Switch from '$lib/components/common/Switch.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -32,6 +33,10 @@
 
 	let adminConfig = null;
 	let webhookUrl = '';
+
+	// Workflow Management
+	let workflowStatus = null;
+	let workflowLoading = false;
 
 	// LDAP
 	let ENABLE_LDAP = false;
@@ -76,11 +81,77 @@
 		}
 	};
 
+	// Workflow management functions
+	const checkWorkflowStatus = async () => {
+		try {
+			workflowStatus = await workflowService.getWorkflowStatus(localStorage.token);
+		} catch (error) {
+			console.error('Failed to check workflow status:', error);
+			workflowStatus = {
+				status: 'error',
+				process_id: null,
+				uptime: null,
+				port: null,
+				url: null
+			};
+		}
+	};
+
+	const startWorkflowServer = async () => {
+		workflowLoading = true;
+		try {
+			const result = await workflowService.startWorkflowServer(localStorage.token);
+			toast.success('Workflow server started successfully!');
+			await checkWorkflowStatus();
+		} catch (error) {
+			toast.error(`Failed to start workflow server: ${error.message}`);
+		}
+		workflowLoading = false;
+	};
+
+	const stopWorkflowServer = async () => {
+		workflowLoading = true;
+		try {
+			await workflowService.stopWorkflowServer(localStorage.token);
+			toast.success('Workflow server stopped successfully!');
+			await checkWorkflowStatus();
+		} catch (error) {
+			toast.error(`Failed to stop workflow server: ${error.message}`);
+		}
+		workflowLoading = false;
+	};
+
+	const restartWorkflowServer = async () => {
+		workflowLoading = true;
+		try {
+			await workflowService.restartWorkflowServer(localStorage.token);
+			toast.success('Workflow server restarted successfully!');
+			await checkWorkflowStatus();
+		} catch (error) {
+			toast.error(`Failed to restart workflow server: ${error.message}`);
+		}
+		workflowLoading = false;
+	};
+
 	const updateHandler = async () => {
 		webhookUrl = await updateWebhookUrl(localStorage.token, webhookUrl);
 		const res = await updateAdminConfig(localStorage.token, adminConfig);
 		await updateLdapConfig(localStorage.token, ENABLE_LDAP);
 		await updateLdapServerHandler();
+
+		// Handle workflow auto-start
+		if (adminConfig.ENABLE_WORKFLOW_SYSTEM && adminConfig.WORKFLOW_AUTO_START) {
+			// Check if workflow server is not running and start it
+			await checkWorkflowStatus();
+			if (workflowStatus.status !== 'running') {
+				try {
+					await startWorkflowServer();
+					toast.success('Workflow system auto-started successfully!');
+				} catch (error) {
+					toast.error('Failed to auto-start workflow system');
+				}
+			}
+		}
 
 		if (res) {
 			saveHandler();
@@ -104,11 +175,26 @@
 			})(),
 			(async () => {
 				LDAP_SERVER = await getLdapServer(localStorage.token);
+			})(),
+			(async () => {
+				await checkWorkflowStatus();
 			})()
 		]);
 
 		const ldapConfig = await getLdapConfig(localStorage.token);
 		ENABLE_LDAP = ldapConfig.ENABLE_LDAP;
+
+		// Auto-start workflow server if enabled
+		if (adminConfig?.WORKFLOW_AUTO_START && workflowStatus.status !== 'running') {
+			setTimeout(async () => {
+				try {
+					await startWorkflowServer();
+					toast.success('Workflow server auto-started!');
+				} catch (error) {
+					console.error('Auto-start failed:', error);
+				}
+			}, 2000); // Wait 2 seconds for UI to load
+		}
 	});
 </script>
 
@@ -657,6 +743,130 @@
 						</div>
 
 						<Switch bind:state={adminConfig.ENABLE_USER_WEBHOOKS} />
+					</div>
+
+					<!-- NST-AI Workflow System -->
+					<hr class="border-gray-100 dark:border-gray-850 my-4" />
+					<div class="mb-3">
+						<div class="mb-2.5 text-sm font-medium flex items-center space-x-2">
+							<div>NST-AI Workflow System</div>
+							<div class="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded">
+								Advanced
+							</div>
+						</div>
+
+						<div class="mb-2.5 flex w-full items-center justify-between pr-2">
+							<div class="self-center text-xs font-medium">Enable Workflow System</div>
+							<Switch bind:state={adminConfig.ENABLE_WORKFLOW_SYSTEM} />
+						</div>
+
+						{#if adminConfig.ENABLE_WORKFLOW_SYSTEM}
+							<div class="mb-2.5 flex w-full items-center justify-between pr-2">
+								<div class="self-center text-xs font-medium">Auto-Start on Admin Login</div>
+								<Switch bind:state={adminConfig.WORKFLOW_AUTO_START} />
+							</div>
+
+							<!-- Workflow Status -->
+							<div class="mb-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+								<div class="flex items-center justify-between mb-2">
+									<div class="text-xs font-medium">Workflow Server Status</div>
+									<div class="flex items-center space-x-2">
+										<div 
+											class="w-2 h-2 rounded-full {workflowStatus.status === 'running' ? 'bg-green-500' : workflowStatus.status === 'error' ? 'bg-red-500' : 'bg-gray-400'}"
+										></div>
+										<span class="text-xs text-gray-600 dark:text-gray-400 capitalize">
+											{workflowStatus.status}
+										</span>
+									</div>
+								</div>
+
+								{#if workflowStatus.status === 'running'}
+									<div class="text-xs text-gray-600 dark:text-gray-400 mb-2">
+										<div>Process ID: {workflowStatus.process_id}</div>
+										<div>Port: {workflowStatus.port}</div>
+										{#if workflowStatus.uptime}
+											<div>Uptime: {workflowStatus.uptime}</div>
+										{/if}
+										{#if workflowStatus.url}
+											<div>
+												URL: <a href={workflowStatus.url} target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline">
+													{workflowStatus.url}
+												</a>
+											</div>
+										{/if}
+									</div>
+								{/if}
+
+								<!-- Control Buttons -->
+								<div class="flex space-x-2">
+									<button
+										class="px-3 py-1 text-xs bg-green-600 hover:bg-green-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
+										on:click={startWorkflowServer}
+										disabled={workflowLoading || workflowStatus.status === 'running'}
+									>
+										{#if workflowLoading && workflowStatus.status !== 'running'}
+											<div class="flex items-center space-x-1">
+												<div class="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+												<span>Starting...</span>
+											</div>
+										{:else}
+											Start Server
+										{/if}
+									</button>
+
+									<button
+										class="px-3 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
+										on:click={stopWorkflowServer}
+										disabled={workflowLoading || workflowStatus.status !== 'running'}
+									>
+										{#if workflowLoading && workflowStatus.status === 'running'}
+											<div class="flex items-center space-x-1">
+												<div class="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+												<span>Stopping...</span>
+											</div>
+										{:else}
+											Stop Server
+										{/if}
+									</button>
+
+									<button
+										class="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
+										on:click={restartWorkflowServer}
+										disabled={workflowLoading}
+									>
+										{#if workflowLoading}
+											<div class="flex items-center space-x-1">
+												<div class="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+												<span>Restarting...</span>
+											</div>
+										{:else}
+											Restart
+										{/if}
+									</button>
+
+									<button
+										class="px-3 py-1 text-xs bg-gray-600 hover:bg-gray-700 text-white rounded"
+										on:click={checkWorkflowStatus}
+									>
+										Refresh
+									</button>
+								</div>
+
+								{#if workflowStatus.status === 'running'}
+									<div class="mt-2 text-xs text-green-600 dark:text-green-400">
+										✓ Workflow system is running and accessible via the "NST-AI Workflow" tab
+									</div>
+								{:else if workflowStatus.status === 'error'}
+									<div class="mt-2 text-xs text-red-600 dark:text-red-400">
+										⚠ Workflow system encountered an error. Check logs for details.
+									</div>
+								{:else}
+									<div class="mt-2 text-xs text-gray-600 dark:text-gray-400">
+										ℹ Click "Start Server" to enable workflow automation features
+									</div>
+								{/if}
+							</div>
+						{/if}
 					</div>
 
 					<div class="mb-2.5">

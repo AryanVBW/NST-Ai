@@ -278,9 +278,13 @@ type PromptSuggestion = {
 
 type SessionUser = {
 	permissions: any;
-	id: string;
-	email: string;
-	name: string;
+	groups: [];
 	role: string;
-	profile_image_url: string;
+	id: string;
+	name: string;
+	email: string;
+	profile_image_url?: string;
 };
+
+// Workflow stores
+export * from './workflow';

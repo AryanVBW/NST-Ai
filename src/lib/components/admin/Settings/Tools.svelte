@@ -13,18 +13,30 @@
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Plus from '$lib/components/icons/Plus.svelte';
 	import Connection from '$lib/components/chat/Settings/Tools/Connection.svelte';
+	import McpConnection from '$lib/components/admin/Settings/Tools/McpConnection.svelte';
 
 	import AddServerModal from '$lib/components/AddServerModal.svelte';
+	import AddMcpServerModal from '$lib/components/admin/AddMcpServerModal.svelte';
 	import { getToolServerConnections, setToolServerConnections } from '$lib/apis/configs';
+	import { getMcpServersConfig, updateMcpServersConfig } from '$lib/apis/mcp';
 
 	export let saveSettings: Function;
 
 	let servers = null;
 	let showConnectionModal = false;
 
+	// MCP servers
+	let mcpServers = null;
+	let showMcpConnectionModal = false;
+
 	const addConnectionHandler = async (server) => {
 		servers = [...servers, server];
 		await updateHandler();
+	};
+
+	const addMcpConnectionHandler = async (server) => {
+		mcpServers = [...mcpServers, server];
+		await updateMcpHandler();
 	};
 
 	const updateHandler = async () => {
@@ -41,22 +53,42 @@
 		}
 	};
 
+	const updateMcpHandler = async () => {
+		const res = await updateMcpServersConfig(localStorage.token, mcpServers).catch((err) => {
+			toast.error($i18n.t('Failed to save MCP connections'));
+
+			return null;
+		});
+
+		if (res) {
+			toast.success($i18n.t('MCP connections saved successfully'));
+		}
+	};
+
 	onMount(async () => {
 		const res = await getToolServerConnections(localStorage.token);
 		servers = res.TOOL_SERVER_CONNECTIONS;
+
+		// Load MCP servers
+		const mcpRes = await getMcpServersConfig(localStorage.token);
+		mcpServers = mcpRes.MCP_SERVER_CONNECTIONS || [];
 	});
 </script>
 
 <AddServerModal bind:show={showConnectionModal} onSubmit={addConnectionHandler} />
+<AddMcpServerModal bind:show={showMcpConnectionModal} onSubmit={addMcpConnectionHandler} />
 
 <form
 	class="flex flex-col h-full justify-between text-sm"
-	on:submit|preventDefault={() => {
-		updateHandler();
+	on:submit|preventDefault={async () => {
+		await updateHandler();
+		if (mcpServers !== null) {
+			await updateMcpHandler();
+		}
 	}}
 >
 	<div class=" overflow-y-scroll scrollbar-hidden h-full">
-		{#if servers !== null}
+		{#if servers !== null && mcpServers !== null}
 			<div class="">
 				<div class="mb-3">
 					<div class=" mb-2.5 text-base font-medium">{$i18n.t('General')}</div>
@@ -104,6 +136,48 @@
 							</div>
 						</div>
 					</div>
+
+					<!-- MCP Servers Section -->
+					{#if mcpServers !== null}
+						<div class="mb-2.5 flex flex-col w-full justify-between">
+							<div class="flex justify-between items-center mb-0.5">
+								<div class="font-medium">{$i18n.t('MCP Servers')}</div>
+
+								<Tooltip content={$i18n.t(`Add MCP Server`)}>
+									<button
+										class="px-1"
+										on:click={() => {
+											showMcpConnectionModal = true;
+										}}
+										type="button"
+									>
+										<Plus />
+									</button>
+								</Tooltip>
+							</div>
+
+							<div class="flex flex-col gap-1.5">
+								{#each mcpServers as server, idx}
+									<McpConnection
+										bind:connection={server}
+										onSubmit={() => {
+											updateMcpHandler();
+										}}
+										onDelete={() => {
+											mcpServers = mcpServers.filter((_, i) => i !== idx);
+											updateMcpHandler();
+										}}
+									/>
+								{/each}
+							</div>
+
+							<div class="my-1.5">
+								<div class="text-xs text-gray-500">
+									{$i18n.t('Connect to Model Context Protocol (MCP) servers for enhanced tool capabilities.')}
+								</div>
+							</div>
+						</div>
+					{/if}
 
 					<!-- <div class="mb-2.5 flex w-full justify-between">
 						<div class=" text-xs font-medium">{$i18n.t('Arena Models')}</div>

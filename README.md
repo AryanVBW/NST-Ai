@@ -59,6 +59,28 @@ After installation, simply run `nst-ai` in your terminal to start the applicatio
 
 For other installation methods, including Docker and pip, please refer to our [Installation Guide](INSTALLATION.md).
 
+### 💻 Development Setup
+
+For developers who want to run NST-AI locally with the complete workflow integration:
+
+**📖 [Development Setup Guide](DEVELOPMENT_SETUP.md)** - Complete step-by-step instructions
+
+**Quick Start:**
+```bash
+# Frontend (Terminal 1)
+npm install && npm run dev
+
+# Backend (Terminal 2) 
+cd backend && source venv/bin/activate
+pip install fastapi uvicorn python-multipart
+PYTHONPATH=$PWD python -m uvicorn nst_ai.main:app --host 0.0.0.0 --port 8080
+```
+
+**Access Points:**
+- Frontend: http://localhost:5173/
+- Backend API: http://localhost:8080/
+- **New!** NST-AI Workflow: Click "NST-AI Workflow" tab in sidebar
+
 --- 
 
 ## 🎬 More Features in Action

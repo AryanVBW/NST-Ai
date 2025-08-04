@@ -21,6 +21,7 @@
 	import Code from '$lib/components/icons/Code.svelte';
 	import UserGroup from '$lib/components/icons/UserGroup.svelte';
 	import SignOut from '$lib/components/icons/SignOut.svelte';
+	import WorkflowGear from '$lib/components/icons/WorkflowGear.svelte';
 
 	const i18n = getContext('i18n');
 
@@ -135,6 +136,22 @@
 						<UserGroup className="w-5 h-5" strokeWidth="1.5" />
 					</div>
 					<div class=" self-center truncate">{$i18n.t('Admin Panel')}</div>
+				</DropdownMenu.Item>
+
+				<DropdownMenu.Item
+					class="flex rounded-md py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition select-none"
+					on:click={() => {
+						show = false;
+						if ($mobile) {
+							showSidebar.set(false);
+						}
+						goto('/workflow-management');
+					}}
+				>
+					<div class=" self-center mr-3">
+						<WorkflowGear className="w-5 h-5" strokeWidth="1.5" />
+					</div>
+					<div class=" self-center truncate">Workflow Management</div>
 				</DropdownMenu.Item>
 			{/if}
 
