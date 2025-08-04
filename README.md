@@ -136,12 +136,3 @@ This project is licensed under the [NST-Ai License](LICENSE), a revised BSD-3-Cl
 
 Have questions or need help? Open an issue on our [GitHub repository](https://github.com/AryanVBW/NST-Ai/issues).
 
-## 🌟 Star History
-
-<a href="https://star-history.com/#AryanVBW/NST-Ai&Date">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=AryanVBW/NST-Ai&type=Date&theme=dark" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=AryanVBW/NST-Ai&type=Date" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=AryanVBW/NST-Ai&type=Date" />
-  </picture>
-</a>
