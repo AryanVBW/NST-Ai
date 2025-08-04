@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NST-AI Mermaid Charts Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .chart-container {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 NST-AI Workflow Management & MCP Integration</h1>
+    
+    <div class="chart-container">
+        <h2>🔄 Workflow Management System</h2>
+        <div class="mermaid">
+graph TD
+    A[User Dashboard] --> B[Workflow Controls]
+    B --> C{Server Status}
+    C -->|Stopped| D[Start Server]
+    C -->|Running| E[Stop Server]
+    C -->|Error| F[Restart Server]
+    
+    D --> G[Server Starting]
+    E --> H[Server Stopping]
+    F --> I[Server Restarting]
+    
+    G --> J[Health Check]
+    H --> K[Cleanup Process]
+    I --> J
+    
+    J --> L{Health Status}
+    L -->|Healthy| M[Server Running ✅]
+    L -->|Unhealthy| N[Error State ❌]
+    
+    M --> O[Real-time Monitoring]
+    N --> P[Error Logging]
+    
+    style A fill:#e1f5fe
+    style M fill:#c8e6c9
+    style N fill:#ffcdd2
+    style O fill:#f3e5f5
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <h2>🔌 MCP Protocol Architecture</h2>
+        <div class="mermaid">
+sequenceDiagram
+    participant UI as Frontend UI
+    participant API as NST-AI API
+    participant MCP as MCP Server
+    participant LLM as Language Model
+    
+    UI->>API: Request MCP Connection
+    API->>MCP: Initialize Protocol
+    MCP-->>API: Connection Established
+    API-->>UI: MCP Ready
+    
+    UI->>API: Send Context Request
+    API->>MCP: Process Context
+    MCP->>LLM: Enhanced Context
+    LLM-->>MCP: Model Response
+    MCP-->>API: Processed Response
+    API-->>UI: Enhanced Result
+    
+    Note over UI,LLM: Real-time Context Sharing
+    Note over MCP,LLM: Protocol-based Communication
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <h2>📱 Admin Control Flow</h2>
+        <div class="mermaid">
+graph LR
+    A[Admin Login] --> B[Dashboard]
+    B --> C[User Management]
+    B --> D[Settings]
+    B --> E[Workflow Control]
+    B --> F[MCP Management]
+    
+    D --> D1[General Settings]
+    D --> D2[Tool Configuration]
+    D --> D3[Server Settings]
+    
+    E --> E1[Start/Stop Servers]
+    E --> E2[Monitor Status]
+    E --> E3[View Logs]
+    
+    F --> F1[MCP Servers]
+    F --> F2[Protocol Settings]
+    F --> F3[Connection Status]
+    
+    style A fill:#ff9800
+    style B fill:#2196f3
+    style E fill:#4caf50
+    style F fill:#9c27b0
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <h2>🏗️ Complete System Architecture</h2>
+        <div class="mermaid">
+graph TB
+    subgraph "Frontend Layer"
+        UI[React/Svelte UI]
+        WM[Workflow Management]
+        AD[Admin Dashboard]
+    end
+    
+    subgraph "API Layer"
+        API[FastAPI Backend]
+        WR[Workflow Router]
+        MR[MCP Router]
+        AR[Auth Router]
+    end
+    
+    subgraph "Service Layer"
+        WS[Workflow Service]
+        MS[MCP Service]
+        AS[Auth Service]
+        LS[Logging Service]
+    end
+    
+    subgraph "Infrastructure"
+        DB[(Database)]
+        FS[File System]
+        PS[Process Manager]
+        CS[Config Store]
+    end
+    
+    subgraph "External Services"
+        LLM[Language Models]
+        MCP_EXT[External MCP Servers]
+        LOG[Log Aggregator]
+    end
+    
+    UI --> API
+    WM --> WR
+    AD --> AR
+    
+    WR --> WS
+    MR --> MS
+    AR --> AS
+    
+    WS --> PS
+    WS --> LS
+    MS --> MCP_EXT
+    AS --> DB
+    
+    LS --> LOG
+    WS --> CS
+    MS --> FS
+    
+    style UI fill:#e3f2fd
+    style API fill:#f3e5f5
+    style WS fill:#e8f5e8
+    style DB fill:#fff3e0
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            themeVariables: {
+                primaryColor: '#4CAF50',
+                primaryTextColor: '#000',
+                primaryBorderColor: '#2E7D32',
+                lineColor: '#757575',
+                secondaryColor: '#E8F5E8',
+                tertiaryColor: '#F3E5F5'
+            }
+        });
+    </script>
+</body>
+</html>
